@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const policy: Policy = await res.json()
 
     return {
-      title: `${policy.meta_title || policy.title} | Classy Collections`,
+      title: `${policy.meta_title || policy.title} | Elani Beauty Hub`,
       description: policy.meta_description || `Read our ${policy.title.toLowerCase()}`,
       keywords: policy.meta_keywords,
       alternates: {
@@ -43,7 +43,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         description: policy.meta_description,
         url: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/policies/${slug}`,
         type: "website",
-        siteName: "Classy Collections",
+        siteName: "Elani Beauty Hub",
       },
     }
   } catch {

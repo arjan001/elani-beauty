@@ -1,10 +1,11 @@
 import { ProductDetailPage } from "@/components/store/product-detail-page"
 import { getProductBySlug } from "@/lib/supabase-data"
 import type { Metadata } from "next"
+import { SITE_SEO, generateProductKeywords } from "@/lib/seo-data"
 
 export const dynamic = "force-dynamic"
 
-const SITE_URL = "https://classycollections.com"
+const siteUrl = SITE_SEO.siteUrl
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
@@ -12,34 +13,33 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const product = await getProductBySlug(slug)
     if (!product) return { title: "Product Not Found | Elani Beauty Hub" }
     const desc = product.description.slice(0, 130) + (product.description.length > 130 ? "..." : "")
+    const isThrift = product.condition === "thrift"
+    const conditionLabel = isThrift ? "Thrift" : "New"
     return {
-      title: `${product.name} | Premium Fashion at Elani Beauty Hub`,
-      description: `${desc} Shop premium women's fashion at Elani Beauty Hub Nairobi. Bodysuits, dresses, tops, corsets & more. Fast delivery Kenya. Call 0702642324.`,
-      keywords: [
-        product.name, "buy fashion online Kenya", "Elani Beauty Hub", "women fashion Kenya",
-        "premium women fashion", "bodysuits Kenya", "dresses Nairobi", "Nairobi fashion",
-        product.category || "", product.tags?.join(", ") || "", "order online Kenya",
-      ],
+      title: `${product.name} | ${conditionLabel} Fashion at Elani Beauty Hub`,
+      description: `${desc} Shop ${isThrift ? "quality thrift" : "brand new"} women's fashion at Elani Beauty Hub Nairobi. Tops, dresses, bodysuits & jackets. Fast delivery Kenya. Call 0702642324.`,
+      keywords: generateProductKeywords(product.name, product.category, product.tags || []),
       alternates: {
-        canonical: `${SITE_URL}/product/${slug}`,
+        canonical: `${siteUrl}/product/${slug}`,
       },
-      authors: [{ name: "Elani Beauty Hub", url: SITE_URL }],
+      authors: [{ name: "Elani Beauty Hub", url: siteUrl }],
       creator: "Elani Beauty Hub",
       openGraph: {
-        title: `${product.name} | Elani Beauty Hub Premium Fashion`,
-        description: `${desc} Premium women's fashion. Bodysuits, dresses, tops & more. Order now at Elani Beauty Hub Kenya.`,
-        url: `${SITE_URL}/product/${slug}`,
-        images: product.images[0] ? [{ url: product.images[0], width: 600, height: 800, alt: `${product.name} - Elani Beauty Hub Premium Fashion` }] : [],
+        title: `${product.name} | ${conditionLabel} Fashion - Elani Beauty Hub`,
+        description: `${desc} ${isThrift ? "Quality thrift" : "Brand new"} women's fashion. Tops, dresses, bodysuits & more. Order now at Elani Beauty Hub Kenya.`,
+        url: `${siteUrl}/product/${slug}`,
+        images: product.images[0] ? [{ url: product.images[0], width: 600, height: 800, alt: `${product.name} - Elani Beauty Hub ${conditionLabel} Fashion` }] : [],
         type: "website",
         siteName: "Elani Beauty Hub",
         locale: "en_KE",
       },
       twitter: {
         card: "summary_large_image",
-        title: `${product.name} | Elani Beauty Hub Nairobi`,
-        description: `${desc} Shop premium fashion at Elani Beauty Hub Kenya.`,
-        images: product.images[0] ? [product.images[0]] : [],
+        site: "@_classycollections",
         creator: "@_classycollections",
+        title: `${product.name} | Elani Beauty Hub Nairobi`,
+        description: `${desc} Shop ${isThrift ? "thrift" : "new"} fashion at Elani Beauty Hub Kenya.`,
+        images: product.images[0] ? [{ url: product.images[0], alt: `${product.name} - Elani Beauty Hub` }] : [],
       },
     }
   } catch {
@@ -50,7 +50,6 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
 
-  // Fetch product for structured data
   let jsonLd = null
   try {
     const product = await getProductBySlug(slug)
@@ -60,9 +59,9 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
         "@type": "Product",
         name: product.name,
         description: product.description,
-        url: `${SITE_URL}/product/${slug}`,
+        url: `${siteUrl}/product/${slug}`,
         image: product.images,
-        brand: { "@type": "Brand", name: "Elani Beauty Hub - Premium Women's Fashion Kenya" },
+        brand: { "@type": "Brand", name: "Elani Beauty Hub" },
         offers: {
           "@type": "Offer",
           price: product.price,
@@ -72,10 +71,9 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
             : "https://schema.org/OutOfStock",
           seller: {
             "@type": "Organization",
-            name: "Classy Collections",
-            url: SITE_URL,
+            name: "Elani Beauty Hub",
+            url: siteUrl,
             telephone: "+254702642324",
-            contactType: "Customer Service",
           },
           itemCondition: product.condition === "thrift"
             ? "https://schema.org/UsedCondition"
