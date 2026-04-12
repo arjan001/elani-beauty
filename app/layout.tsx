@@ -21,63 +21,67 @@ const siteUrl = "https://classycollections.com"
 
 export const metadata: Metadata = {
   title: {
-    default: "Classy Collections | Premium Ankara Suits, Dresses & Kimonos in Nairobi",
-    template: "%s | Classy Collections",
+    default: "Elani Beauty Hub | Premium Women's Bodysuits, Dresses & Tops in Nairobi",
+    template: "%s | Elani Beauty Hub",
   },
   description:
-    "Discover vibrant, ready-made Ankara fashion at Classy Collections. Shop Ankara suits, kimono sets, palazzo pants, and dresses. Premium African prints delivered in Nairobi. Call 0702642324.",
+    "Shop the latest women's bodysuits, dresses, tops, corsets, and jackets at Elani Beauty Hub. Premium women's fashion designed for the modern woman. Order today in Nairobi. Call 0702642324.",
   icons: {
     icon: "/favicon.jpg",
     apple: "/favicon.jpg",
     shortcut: "/favicon.jpg",
   },
   keywords: [
-    // 70 Core SEO Tags
-    "Ankara suits Nairobi", "ready-made Ankara wear", "African print dresses Kenya", "Ankara kimono sets", "Ankara palazzo pants",
-    "Ankara tops for women", "men's Ankara shirts", "African fashion Nairobi", "modern Ankara styles 2026", "Ankara office wear",
-    "Ankara wedding guest outfits", "high-quality African prints", "Classy Collections Nairobi", "Ankara streetwear", "plus size Ankara dresses",
-    "Ankara wrap tops", "African wax print clothing", "trendy Ankara kimonos", "Ankara trousers for ladies", "traditional African attire",
-    "contemporary African fashion", "Ankara shift dresses", "Ankara infinity dresses", "Ankara casual wear", "bespoke African outfits",
-    "Ankara jackets Kenya", "handmade African clothes", "Ankara fashion house", "Nairobi fashion boutiques", "Ankara accessories",
-    "Ankara jumpsuits", "bold African prints", "Ankara duster coats", "Ankara crop tops", "Ankara maxi dresses",
-    "Ankara pencil skirts", "kitenge fashion Kenya", "African print suits for men", "Ankara matching sets", "vibrant African wear",
-    "Ankara sundresses", "professional African wear", "Ankara holiday outfits", "African print kimonos", "luxury Ankara fashion",
-    "affordable Ankara wear", "Classy Collections contact", "Ankara style inspiration", "African heritage clothing", "stylish Ankara blouses",
-    "Ankara palazzo suits", "Ankara short dresses", "Ankara long dresses", "African print formal wear", "Nairobi thrift alternative",
-    "premium kitenge designs", "Ankara loungewear", "Ankara festival outfits", "Kenyan fashion brands", "Ankara cocktail dresses",
-    "Ankara bodycon dresses", "African print loungewear", "Ankara peplum tops", "Ankara flared pants", "African print fashionistas",
-    "Nairobi clothing stores", "Ankara outfits for graduation", "stylish African print shirts", "Ankara fashion trends", "Classy Collections 0702642324",
+    "women bodysuits Nairobi", "bodysuit collection Kenya", "women dresses Kenya", "corset tops Nairobi",
+    "women tops Kenya", "jackets for women Nairobi", "women fashion Nairobi", "modern women styles 2026",
+    "office wear women Kenya", "wedding guest outfits Kenya", "high-quality women fashion", "Elani Beauty Hub Nairobi",
+    "streetwear women Kenya", "plus size bodysuits", "lace dresses Kenya", "floral tops Nairobi",
+    "trendy women clothing", "bodycon dresses Kenya", "casual women wear", "bespoke women outfits",
+    "turtleneck bodysuits", "handmade women clothes", "fashion house Nairobi", "Nairobi fashion boutiques",
+    "women accessories", "jumpsuits Kenya", "bold fashion prints", "crop tops Nairobi", "maxi dresses Kenya",
+    "pencil skirts Nairobi", "fashion Kenya", "matching sets women", "vibrant women wear",
+    "sundresses Kenya", "professional women wear", "holiday outfits Kenya", "luxury women fashion",
+    "affordable women wear", "Elani Beauty Hub contact", "style inspiration Kenya",
+    "short dresses Nairobi", "long dresses Kenya", "formal wear women", "Nairobi thrift alternative",
+    "premium women designs", "loungewear Kenya", "festival outfits Nairobi", "Kenyan fashion brands",
+    "cocktail dresses Kenya", "bodycon bodysuits", "peplum tops Kenya", "flared pants women",
+    "fashion Nairobi", "Nairobi clothing stores", "graduation outfits Kenya", "stylish tops Nairobi",
+    "fashion trends Kenya", "Elani Beauty Hub 0702642324", "off-shoulder bodysuits",
+    "halter dresses Kenya", "corset fashion Nairobi", "women blouses Kenya",
+    "spaghetti strap bodysuits", "elegant evening wear", "date night outfits Kenya",
+    "going out tops Nairobi", "ribbed bodysuits", "mesh bodysuits Kenya",
+    "women jackets Nairobi", "buy women clothing online Kenya",
   ],
   authors: [
-    { name: "Classy Collections", url: "https://classycollections.com" },
+    { name: "Elani Beauty Hub", url: "https://classycollections.com" },
     { name: "OnePlus Africa Tech Solutions", url: "http://oneplusafrica.com/" },
   ],
-  creator: "Classy Collections",
-  publisher: "Classy Collections",
+  creator: "Elani Beauty Hub",
+  publisher: "Elani Beauty Hub",
   metadataBase: new URL(siteUrl),
   alternates: { canonical: siteUrl },
   openGraph: {
     type: "website",
     locale: "en_KE",
     url: siteUrl,
-    siteName: "Classy Collections",
-    title: "Classy Collections | Premium Ankara Suits, Dresses & Kimonos in Nairobi",
+    siteName: "Elani Beauty Hub",
+    title: "Elani Beauty Hub | Premium Women's Bodysuits, Dresses & Tops in Nairobi",
     description:
-      "Discover vibrant, ready-made Ankara fashion at Classy Collections. Shop Ankara suits, kimono sets, palazzo pants, and dresses. Premium African prints delivered in Nairobi.",
+      "Shop the latest women's bodysuits, dresses, tops, corsets, and jackets at Elani Beauty Hub. Premium women's fashion designed for the modern woman in Nairobi.",
     images: [
       {
         url: `${siteUrl}/logo.png`,
         width: 512,
         height: 512,
-        alt: "Classy Collections - Premium African Ankara Fashion",
+        alt: "Elani Beauty Hub - Premium Women's Fashion",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Classy Collections | Premium Ankara Fashion",
+    title: "Elani Beauty Hub | Premium Women's Fashion",
     description:
-      "Shop Ankara suits, dresses, kimonos, and more. Premium African print clothing delivered across Kenya and East Africa. Call 0702642324.",
+      "Shop bodysuits, dresses, tops, corsets, and more. Premium women's clothing delivered across Kenya and East Africa. Call 0702642324.",
     images: [`${siteUrl}/logo.png`],
     creator: "@_classycollections",
   },
@@ -132,8 +136,8 @@ export default function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "Organization",
-              name: "Classy Collections",
-              legalName: "Classy Collections Kenya",
+              name: "Elani Beauty Hub",
+              legalName: "Elani Beauty Hub Kenya",
               url: "https://classycollections.com",
               foundingDate: "2025",
               contactPoint: {
@@ -145,7 +149,7 @@ export default function RootLayout({
               },
               location: {
                 "@type": "Place",
-                name: "Classy Collections",
+                name: "Elani Beauty Hub",
                 address: {
                   "@type": "PostalAddress",
                   addressLocality: "Nairobi",
@@ -162,8 +166,8 @@ export default function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "LocalBusiness",
-              name: "Classy Collections",
-              description: "Premium authentic African Ankara fashion. Men's suits, women's dresses, kimonos, palazzo, and more. Quality African print clothing delivered across Kenya and East Africa.",
+              name: "Elani Beauty Hub",
+              description: "Premium women's fashion — bodysuits, dresses, tops, corsets, jackets and more. Quality women's clothing delivered across Kenya and East Africa.",
               url: "https://classycollections.com",
               telephone: "+254702642324",
               email: "info@classycollections.com",
@@ -181,7 +185,7 @@ export default function RootLayout({
               image: "https://classycollections.com/logo.png",
               brand: {
                 "@type": "Brand",
-                name: "Classy Collections",
+                name: "Elani Beauty Hub",
               },
               paymentAccepted: "M-PESA, Card, Cash on Delivery",
               currenciesAccepted: "KES",
@@ -194,12 +198,12 @@ export default function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "WebSite",
-              name: "Classy Collections",
+              name: "Elani Beauty Hub",
               url: "https://classycollections.com",
-              description: "Premium authentic African Ankara fashion. Ready-made suits, elegant dresses, kimonos, and more delivered across Kenya and East Africa.",
+              description: "Premium women's fashion — bodysuits, dresses, tops, corsets, and jackets delivered across Kenya and East Africa.",
               publisher: {
                 "@type": "Organization",
-                name: "Classy Collections",
+                name: "Elani Beauty Hub",
                 logo: {
                   "@type": "ImageObject",
                   url: "https://classycollections.com/logo.png",
@@ -222,7 +226,7 @@ export default function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "ItemList",
-              name: "Classy Collections Site Pages",
+              name: "Elani Beauty Hub Site Pages",
               itemListElement: [
                 { "@type": "SiteNavigationElement", position: 1, name: "Home", url: "https://classycollections.com" },
                 { "@type": "SiteNavigationElement", position: 2, name: "Shop All", url: "https://classycollections.com/shop" },
