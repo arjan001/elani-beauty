@@ -72,8 +72,8 @@ function buildOrderEmailHtml(data: OrderEmailData): string {
         <!-- Header -->
         <tr>
           <td style="background-color:#1a1a1a;padding:28px 32px;text-align:center;">
-            <h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:2px;">CLASSY COLLECTIONS</h1>
-            <p style="margin:4px 0 0;font-size:11px;color:#999;letter-spacing:1px;">ANKARA COLLECTION</p>
+            <h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:2px;">ELANI BEAUTY HUB</h1>
+            <p style="margin:4px 0 0;font-size:11px;color:#999;letter-spacing:1px;">BEAUTY COLLECTION</p>
           </td>
         </tr>
 

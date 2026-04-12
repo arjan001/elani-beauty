@@ -7,9 +7,9 @@ export const metadata: Metadata = {
   description: PAGE_SEO.wishlist.description,
   alternates: { canonical: `${SITE_SEO.siteUrl}/wishlist` },
   keywords: [
-    "Classy Collections wishlist", "saved Ankara dresses", "favourite Ankara pieces",
-    "Ankara wishlist Kenya", "African fashion collection", "Classy Collections saved items",
-    "buy later Ankara fashion", "curated fashion picks", "Classy Collections wishlist",
+    "Elani Beauty Hub wishlist", "saved fashion pieces", "favourite beauty items",
+    "fashion wishlist Kenya", "women fashion collection", "Elani Beauty Hub saved items",
+    "buy later fashion", "curated fashion picks", "Elani Beauty Hub wishlist",
   ],
   authors: [{ name: SITE_SEO.siteName, url: SITE_SEO.siteUrl }],
   creator: SITE_SEO.siteName,
