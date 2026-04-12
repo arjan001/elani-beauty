@@ -124,8 +124,7 @@ export default function RootLayout({
               itemListElement: [
                 { "@type": "ListItem", position: 1, name: "Home", item: "https://classycollections.com" },
                 { "@type": "ListItem", position: 2, name: "Shop", item: "https://classycollections.com/shop" },
-                { "@type": "ListItem", position: 3, name: "Men's Collection", item: "https://classycollections.com/shop?category=men" },
-                { "@type": "ListItem", position: 4, name: "Women's Collection", item: "https://classycollections.com/shop?category=women" },
+                { "@type": "ListItem", position: 3, name: "Women's Collection", item: "https://classycollections.com/shop?category=women" },
               ],
             }),
           }}
@@ -230,14 +229,13 @@ export default function RootLayout({
               itemListElement: [
                 { "@type": "SiteNavigationElement", position: 1, name: "Home", url: "https://classycollections.com" },
                 { "@type": "SiteNavigationElement", position: 2, name: "Shop All", url: "https://classycollections.com/shop" },
-                { "@type": "SiteNavigationElement", position: 3, name: "Men's Collection", url: "https://classycollections.com/shop?category=men" },
-                { "@type": "SiteNavigationElement", position: 4, name: "Women's Collection", url: "https://classycollections.com/shop?category=women" },
-                { "@type": "SiteNavigationElement", position: 5, name: "New Arrivals", url: "https://classycollections.com/shop?filter=new" },
-                { "@type": "SiteNavigationElement", position: 6, name: "Track My Order", url: "https://classycollections.com/track-order" },
-                { "@type": "SiteNavigationElement", position: 7, name: "Wishlist", url: "https://classycollections.com/wishlist" },
-                { "@type": "SiteNavigationElement", position: 8, name: "Privacy Policy", url: "https://classycollections.com/privacy-policy" },
-                { "@type": "SiteNavigationElement", position: 9, name: "Terms of Service", url: "https://classycollections.com/terms-of-service" },
-                { "@type": "SiteNavigationElement", position: 10, name: "Refund Policy", url: "https://classycollections.com/refund-policy" },
+                { "@type": "SiteNavigationElement", position: 3, name: "Women's Collection", url: "https://classycollections.com/shop?category=women" },
+                { "@type": "SiteNavigationElement", position: 4, name: "New Arrivals", url: "https://classycollections.com/shop?filter=new" },
+                { "@type": "SiteNavigationElement", position: 5, name: "Track My Order", url: "https://classycollections.com/track-order" },
+                { "@type": "SiteNavigationElement", position: 6, name: "Wishlist", url: "https://classycollections.com/wishlist" },
+                { "@type": "SiteNavigationElement", position: 7, name: "Privacy Policy", url: "https://classycollections.com/privacy-policy" },
+                { "@type": "SiteNavigationElement", position: 8, name: "Terms of Service", url: "https://classycollections.com/terms-of-service" },
+                { "@type": "SiteNavigationElement", position: 9, name: "Refund Policy", url: "https://classycollections.com/refund-policy" },
               ],
             }),
           }}

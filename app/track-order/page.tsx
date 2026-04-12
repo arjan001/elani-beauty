@@ -12,9 +12,9 @@ export const metadata: Metadata = {
   robots: { index: PAGE_SEO.trackOrder.noindex ? false : true, follow: true },
   alternates: { canonical: `${SITE_SEO.siteUrl}/track-order` },
   keywords: [
-    "track order Classy Collections", "ankara delivery tracking", "order status Kenya",
-    "Classy Collections order status", "fashion delivery Kenya", "check order status",
-    "delivery tracking Nairobi", "order tracking Kenya", "Classy Collections delivery",
+    "track order Elani Beauty Hub", "fashion delivery tracking", "order status Kenya",
+    "Elani Beauty Hub order status", "fashion delivery Kenya", "check order status",
+    "delivery tracking Nairobi", "order tracking Kenya", "Elani Beauty Hub delivery",
   ],
   openGraph: {
     title: PAGE_SEO.trackOrder.title,

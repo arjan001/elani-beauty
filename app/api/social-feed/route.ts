@@ -140,7 +140,7 @@ const fallbackPosts: SocialPost[] = [
     platform: "instagram",
     thumbnailUrl:
       "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/629193217_18340368757212493_1480765838168153731_n-wC1jOTRfbRYdWnoXghbWGXEVNGBWam.jpg",
-    caption: "New Ankara drop just landed! Fresh prints available",
+    caption: "New collection just landed! Fresh styles available",
     url: "https://www.instagram.com/classycollections/",
     authorName: "@classycollections",
   },
@@ -149,7 +149,7 @@ const fallbackPosts: SocialPost[] = [
     platform: "tiktok",
     thumbnailUrl:
       "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/626300021_18340368655212493_4414636015382857078_n-blUbjySwyB9lUadVyYMogCeKLn1ceI.jpg",
-    caption: "How to style Ankara for any occasion",
+    caption: "How to style your outfits for any occasion",
     url: "https://www.tiktok.com/@classycollections/video/7461643744227393798",
     authorName: "@classycollections",
   },
@@ -158,7 +158,7 @@ const fallbackPosts: SocialPost[] = [
     platform: "instagram",
     thumbnailUrl:
       "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/630121672_18340368937212493_3946690921086389086_n-VRoUTe5L8vTxr34o4RQxJDZGGzARSK.jpg",
-    caption: "Elegant Ankara prints - timeless African fashion",
+    caption: "Elegant prints - timeless fashion",
     url: "https://www.instagram.com/classycollections/",
     authorName: "@classycollections",
   },
@@ -167,7 +167,7 @@ const fallbackPosts: SocialPost[] = [
     platform: "tiktok",
     thumbnailUrl:
       "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/627839274_18340368694212493_1900658190163154627_n-RQbuPfN5qde7Mt0Zu6MOrirynVM7Nv.jpg",
-    caption: "Size-inclusive Ankara haul from Classy Collections",
+    caption: "Size-inclusive haul from Elani Beauty Hub",
     url: "https://www.tiktok.com/@classycollections/video/7459629757042420998",
     authorName: "@classycollections",
   },

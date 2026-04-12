@@ -104,7 +104,6 @@ export function Navbar() {
                 <Link href="/" className="py-3 text-sm font-medium border-b border-border">Home</Link>
                 <Link href="/shop" className="py-3 text-sm font-medium border-b border-border">Shop All</Link>
                 <p className="pt-3 pb-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Collections</p>
-                <Link href="/shop/men" className="py-2.5 text-sm border-b border-border pl-3">Men's Collection</Link>
                 <Link href="/shop/women" className="py-2.5 text-sm border-b border-border pl-3">Women's Collection</Link>
                 <p className="pt-3 pb-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Categories</p>
                 {categories.map((cat) => (
@@ -132,7 +131,6 @@ export function Navbar() {
                 {categoriesOpen && (
                   <div className="absolute top-full left-0 mt-1 w-52 bg-background border border-border shadow-lg rounded-sm z-50">
                     <p className="px-4 pt-3 pb-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Collections</p>
-                    <Link href="/shop?category=men" className="block px-4 py-2.5 text-sm font-medium hover:bg-secondary transition-colors" onClick={() => setCategoriesOpen(false)}>Men</Link>
                     <Link href="/shop?category=women" className="block px-4 py-2.5 text-sm font-medium hover:bg-secondary transition-colors" onClick={() => setCategoriesOpen(false)}>Women</Link>
                     <div className="border-t border-border my-1" />
                     <p className="px-4 pt-2 pb-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Categories</p>
@@ -233,7 +231,6 @@ export function Navbar() {
             <nav className="flex items-center gap-8">
               <Link href="/" className="text-sm font-medium hover:text-muted-foreground transition-colors">Home</Link>
               <Link href="/shop" className="text-sm font-medium hover:text-muted-foreground transition-colors">Shop All</Link>
-              <Link href="/shop/men" className="text-sm font-medium hover:text-muted-foreground transition-colors">Men</Link>
               <Link href="/shop/women" className="text-sm font-medium hover:text-muted-foreground transition-colors">Women</Link>
               <Link href="/track-order" className="text-sm font-medium hover:text-muted-foreground transition-colors">Track My Order</Link>
             </nav>
