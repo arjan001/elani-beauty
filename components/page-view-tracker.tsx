@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useCallback } from "react"
 import { usePathname } from "next/navigation"
 
 function getSessionId() {
@@ -13,16 +13,94 @@ function getSessionId() {
   return sid
 }
 
+function detectBot(): boolean {
+  if (typeof window === "undefined") return false
+  const ua = navigator.userAgent
+  // Known bot patterns
+  if (/bot|crawl|spider|scraper|curl|wget|python|java|go-http|headless|phantom|puppeteer|selenium|playwright/i.test(ua)) return true
+  // No webdriver check
+  if ((navigator as unknown as Record<string, unknown>).webdriver) return true
+  // No plugins often means headless
+  if (navigator.plugins && navigator.plugins.length === 0 && !/mobile|android|iphone/i.test(ua)) return true
+  return false
+}
+
+function getScrollDepth(): number {
+  if (typeof window === "undefined") return 0
+  const scrollTop = window.scrollY || document.documentElement.scrollTop
+  const docHeight = Math.max(
+    document.body.scrollHeight,
+    document.documentElement.scrollHeight,
+    document.body.offsetHeight,
+    document.documentElement.offsetHeight
+  )
+  const winHeight = window.innerHeight
+  if (docHeight <= winHeight) return 100
+  return Math.min(100, Math.round((scrollTop / (docHeight - winHeight)) * 100))
+}
+
 export function PageViewTracker() {
   const pathname = usePathname()
   const lastTracked = useRef("")
+  const pageEnterTime = useRef<number>(0)
+  const maxScrollDepth = useRef(0)
+  const isBot = useRef(false)
 
+  // Track page duration on leave
+  const sendDuration = useCallback(() => {
+    if (!pageEnterTime.current || lastTracked.current.startsWith("/admin") || lastTracked.current.startsWith("/auth")) return
+    const duration = Math.round((Date.now() - pageEnterTime.current) / 1000)
+    if (duration < 1) return
+
+    const payload = JSON.stringify({
+      path: lastTracked.current,
+      sessionId: getSessionId(),
+      duration,
+      scrollDepth: maxScrollDepth.current,
+    })
+
+    // Use sendBeacon for reliable delivery on page leave
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon("/api/track-view", new Blob([payload], { type: "application/json" }))
+    } else {
+      fetch("/api/track-view", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: payload, keepalive: true }).catch(() => {})
+    }
+  }, [])
+
+  // Track scroll depth
   useEffect(() => {
-    // Don't track admin pages
+    const onScroll = () => {
+      const depth = getScrollDepth()
+      if (depth > maxScrollDepth.current) maxScrollDepth.current = depth
+    }
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+
+  // Track page unload
+  useEffect(() => {
+    const onBeforeUnload = () => sendDuration()
+    window.addEventListener("beforeunload", onBeforeUnload)
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") sendDuration()
+    })
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload)
+    }
+  }, [sendDuration])
+
+  // Track page views
+  useEffect(() => {
     if (pathname.startsWith("/admin") || pathname.startsWith("/auth")) return
-    // Don't double-track same path
     if (lastTracked.current === pathname) return
+
+    // Send duration for previous page
+    if (lastTracked.current) sendDuration()
+
     lastTracked.current = pathname
+    pageEnterTime.current = Date.now()
+    maxScrollDepth.current = 0
+    isBot.current = detectBot()
 
     const track = async () => {
       try {
@@ -33,16 +111,62 @@ export function PageViewTracker() {
             path: pathname,
             referrer: document.referrer || "",
             sessionId: getSessionId(),
+            isBot: isBot.current,
+            screenWidth: window.innerWidth,
+            screenHeight: window.innerHeight,
           }),
         })
       } catch {
-        // Silently fail - tracking should never block the user
+        // Silently fail
       }
     }
 
-    // Small delay so it doesn't block page load
     const timeout = setTimeout(track, 500)
     return () => clearTimeout(timeout)
+  }, [pathname, sendDuration])
+
+  // Track button clicks and link clicks
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      const button = target.closest("button, a, [role='button']") as HTMLElement | null
+      if (!button) return
+      if (pathname.startsWith("/admin") || pathname.startsWith("/auth")) return
+
+      const eventTarget =
+        button.getAttribute("aria-label") ||
+        button.textContent?.trim().slice(0, 100) ||
+        button.tagName
+
+      const eventData: Record<string, string> = {
+        tag: button.tagName.toLowerCase(),
+        page: pathname,
+      }
+
+      if (button instanceof HTMLAnchorElement && button.href) {
+        eventData.href = button.href
+      }
+
+      if (button.id) eventData.id = button.id
+      if (button.className) eventData.class = button.className.toString().slice(0, 200)
+
+      // Fire and forget - don't block UI
+      fetch("/api/track-event", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventType: "click",
+          eventTarget: eventTarget?.slice(0, 200),
+          eventData,
+          pagePath: pathname,
+          sessionId: getSessionId(),
+          isBot: isBot.current,
+        }),
+      }).catch(() => {})
+    }
+
+    document.addEventListener("click", onClick, { capture: true })
+    return () => document.removeEventListener("click", onClick, { capture: true })
   }, [pathname])
 
   return null

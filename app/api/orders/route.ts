@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate payment method
-    const validPaymentMethods = ["cod", "mpesa", "whatsapp"]
+    const validPaymentMethods = ["cod", "mpesa", "whatsapp", "card"]
     const paymentMethod = validPaymentMethods.includes(body.paymentMethod) ? body.paymentMethod : "cod"
 
     // Validate numeric fields
