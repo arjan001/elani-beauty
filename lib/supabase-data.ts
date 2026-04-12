@@ -48,6 +48,7 @@ function mapProduct(row: Record<string, unknown>, images: Record<string, unknown
 
 export async function getProducts(): Promise<Product[]> {
   const supabase = await createClient()
+  if (!supabase) return []
 
   const [productsRes, imagesRes, variationsRes, productTagsRes] = await Promise.all([
     supabase.from("products").select("*, categories(name, slug)").order("sort_order", { ascending: true }),
@@ -75,6 +76,7 @@ export async function getProducts(): Promise<Product[]> {
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   const supabase = await createClient()
+  if (!supabase) return null
 
   const { data: row } = await supabase
     .from("products")
@@ -105,6 +107,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 
 export async function getProductsByCategory(categorySlug: string): Promise<Product[]> {
   const supabase = await createClient()
+  if (!supabase) return []
 
   const { data: category } = await supabase
     .from("categories")
@@ -129,6 +132,7 @@ export async function getProductsByCategory(categorySlug: string): Promise<Produ
 
 export async function getCategories(): Promise<Category[]> {
   const supabase = await createClient()
+  if (!supabase) return []
 
   const { data: categories } = await supabase
     .from("categories")
@@ -159,6 +163,7 @@ export async function getCategories(): Promise<Category[]> {
 
 export async function getDeliveryLocations(): Promise<DeliveryLocation[]> {
   const supabase = await createClient()
+  if (!supabase) return []
 
   const { data } = await supabase
     .from("delivery_locations")
@@ -178,6 +183,7 @@ export async function getDeliveryLocations(): Promise<DeliveryLocation[]> {
 
 export async function getNavbarOffers(): Promise<string[]> {
   const supabase = await createClient()
+  if (!supabase) return []
 
   const { data } = await supabase
     .from("navbar_offers")
@@ -190,6 +196,7 @@ export async function getNavbarOffers(): Promise<string[]> {
 
 export async function getPopupOffer(): Promise<Offer | null> {
   const supabase = await createClient()
+  if (!supabase) return null
 
   const { data } = await supabase
     .from("popup_offers")
@@ -206,13 +213,14 @@ export async function getPopupOffer(): Promise<Offer | null> {
     title: offer.title,
     description: offer.description || "",
     discount: offer.discount_label || "",
-    image: offer.image_url || "/banners/ankara-dresses-banner.jpg",
+    image: offer.image_url || "/banners/bodysuit-blush-square.jpg",
     validUntil: offer.valid_until || "2026-12-31",
   }
 }
 
 export async function getSiteSettings() {
   const supabase = await createClient()
+  if (!supabase) return null
 
   const { data } = await supabase
     .from("site_settings")
@@ -249,6 +257,7 @@ export async function createOrder(order: {
   }[]
 }) {
   const supabase = await createClient()
+  if (!supabase) throw new Error("Database not available — missing Supabase environment variables")
 
   // Generate order number
   const orderNumber = `CC-${Date.now().toString(36).toUpperCase()}`
@@ -300,6 +309,7 @@ export async function createOrder(order: {
 export async function getHeroBanners(): Promise<HeroBanner[]> {
   try {
     const supabase = await createClient()
+    if (!supabase) return []
 
     const { data, error } = await supabase
       .from("hero_banners")
@@ -320,10 +330,10 @@ export async function getHeroBanners(): Promise<HeroBanner[]> {
 
     return data.map((b) => ({
       id: b.id,
-      title: b.title || "Ankara Collection",
-      subtitle: b.subtitle || "Discover premium African fashion",
-      collection: "ankara-collection",
-      bannerImage: b.image_url || "/banners/hero-ankara-main.jpg",
+      title: b.title || "Women's Collection",
+      subtitle: b.subtitle || "Discover premium women's fashion",
+      collection: "women-collection",
+      bannerImage: b.image_url || "/banners/bodysuit-black-vneck.jpg",
       linkUrl: b.button_link || "/shop",
       buttonText: b.button_text || "Shop Now",
       sortOrder: b.sort_order || 0,
@@ -336,6 +346,7 @@ export async function getHeroBanners(): Promise<HeroBanner[]> {
 
 export async function getProductsByCollection(collection: string): Promise<Product[]> {
   const supabase = await createClient()
+  if (!supabase) return []
 
   const [productsRes, imagesRes, variationsRes, productTagsRes] = await Promise.all([
     supabase.from("products").select("*, categories(name, slug)").eq("collection", collection).order("sort_order", { ascending: true }),

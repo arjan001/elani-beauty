@@ -9,18 +9,17 @@ import useSWR from "swr"
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 const COLLECTIONS = [
-  { name: "Women", slug: "women", image: "/banners/hero-ankara-main.jpg", href: "/shop/women" },
-  { name: "Men", slug: "men", image: "/banners/ankara-new-arrivals-banner.jpg", href: "/shop/men" },
+  { name: "Women", slug: "women", image: "/banners/bodysuit-black-vneck.jpg", href: "/shop/women" },
+  { name: "New In", slug: "new", image: "/banners/top-floral-garden.jpg", href: "/shop?filter=new" },
 ]
 
 const CATEGORY_IMAGES: Record<string, string> = {
-  "women-ankara-dresses": "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/blue-white-african-ankara-print-plus-size-clothing-party-dress-435554-4htvoFTBgJR1myaOCHvUom98ShGAQL.jpeg",
-  "women-ankara-tops": "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Orange_Blue_Long_African_Ankara_Print_Party_Dress3%20%289%29-9q76hpXKmzKFsE1KNcVszo6ey574IO.jpeg",
-  "women-ankara-kimonos": "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/AfricanankaraPlussizedress_africanclothing_dashikidress_ankaradress_ankaradress_printdress_africanprintdress_africanclothing_maxiwrapdress_madetomeasure_custommade69-rpakakX2tJ3EK5PWbS7X7uwDJ0O9Td.jpeg",
-  "women-ankara-suits": "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/REDMULTIPLUSSIZEAFRICANANKARAPRINTFITTEDPARTYORGANZADRESS1_f65366fe-139f-4b9d-ac06-d61694a2d999%20%281%29-jnHPFzZLpoVSIZa3U9ghnqdC2Gjr1n.jpeg",
-  "women-ankara-palazzo": "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/green-gold-multi-african-ankara-print-plus-size-short-party-dress-407943-Ykn226QRyD5Bp2QSLNuywdZn9IYrWR.jpeg",
-  "men-ankara-suits": "/banners/ankara-dresses-banner.jpg",
-  "men-ankara-shirts": "/banners/ankara-new-arrivals-banner.jpg",
+  "women-bodysuits": "/banners/bodysuit-teal-cami.jpg",
+  "women-tops": "/banners/top-tropical-ruffle.jpg",
+  "women-dresses": "/banners/dress-beige-wrap.jpg",
+  "women-jackets": "/banners/bodysuit-grey-turtleneck-long.jpg",
+  "women-corsets": "/banners/corset-floral-cream.jpg",
+  "women-blouses": "/banners/blouse-green-polkadot.jpg",
 }
 
 export function CategoriesSection() {
@@ -54,7 +53,7 @@ export function CategoriesSection() {
                 <div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-secondary">
                   <Image
                     src={col.image}
-                    alt={`${col.name} Ankara collection`}
+                    alt={`${col.name} collection`}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
                   />

@@ -11,18 +11,18 @@ export function Footer() {
           <div>
             <Link href="/" className="flex items-center gap-3">
               <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
-                <span className="text-lg font-bold text-primary-foreground">CC</span>
+                <span className="text-lg font-bold text-primary-foreground">EB</span>
               </div>
               <span className="font-serif text-2xl font-bold tracking-tight">
-                Classy Collections
+                Elani Beauty Hub
               </span>
             </Link>
             <p className="text-background/60 text-sm mt-4 leading-relaxed max-w-xs">
-              Premium authentic Ankara fashion for men and women. Handcrafted suits, dresses, kimonos, and more. Celebrate African style with quality fabrics delivered across East Africa.
+              Premium women&apos;s fashion — bodysuits, dresses, tops, and jackets. Stylish, curated pieces delivered across East Africa.
             </p>
             <div className="flex items-center gap-3 mt-6">
               <a
-                href="https://www.instagram.com/ankarafashion/"
+                href="https://www.instagram.com/_classycollections/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 flex items-center justify-center bg-primary hover:bg-secondary rounded-lg transition-colors"
@@ -64,7 +64,7 @@ export function Footer() {
             </h3>
             <nav className="flex flex-col gap-3">
               <Link href="/shop" className="text-background/60 text-sm hover:text-background transition-colors">
-                Shop All Ankara
+                Shop All
               </Link>
               <Link href="/shop?filter=new" className="text-background/60 text-sm hover:text-background transition-colors">
                 New Arrivals
@@ -78,14 +78,14 @@ export function Footer() {
               <Link href="/delivery" className="text-background/60 text-sm hover:text-background transition-colors">
                 Delivery Locations
               </Link>
-              <Link href="/shop?category=ankara-suits" className="text-background/60 text-sm hover:text-background transition-colors">
-                Ankara Suits
+              <Link href="/shop?category=bodysuits" className="text-background/60 text-sm hover:text-background transition-colors">
+                Bodysuits
               </Link>
-              <Link href="/shop?category=ankara-dresses" className="text-background/60 text-sm hover:text-background transition-colors">
-                Ankara Dresses
+              <Link href="/shop?category=dresses" className="text-background/60 text-sm hover:text-background transition-colors">
+                Dresses
               </Link>
-              <Link href="/shop?category=ankara-kimonos" className="text-background/60 text-sm hover:text-background transition-colors">
-                Ankara Kimonos
+              <Link href="/shop?category=tops" className="text-background/60 text-sm hover:text-background transition-colors">
+                Tops &amp; Jackets
               </Link>
             </nav>
           </div>
@@ -166,7 +166,7 @@ export function Footer() {
         <div className="mt-12 pt-8 border-t border-background/10">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-background/40 text-xs">
-              {"© 2026 Classy Collections. All rights reserved."}
+              {"© 2026 Elani Beauty Hub. All rights reserved."}
             </p>
             <div className="flex items-center gap-6">
               <Link href="/privacy-policy" className="text-background/40 text-xs hover:text-background transition-colors">
@@ -182,7 +182,7 @@ export function Footer() {
           </div>
           <div className="mt-4 text-center space-y-2">
             <p className="text-background/30 text-[11px]">
-              Classy Collections - Premium African Ankara Fashion
+              Elani Beauty Hub - Premium Women&apos;s Fashion
             </p>
             <p className="text-background/25 text-[10px]">
               Website designed and built by{" "}

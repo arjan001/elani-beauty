@@ -24,13 +24,13 @@ function formatPrice(price: number): string {
 
 const COLLECTION_INFO: Record<string, { label: string; tagline: string; banners: string[] }> = {
   men: {
-    label: "Men's Ankara Collection",
-    tagline: "Premium Ankara fashion for the modern African gentleman",
+    label: "Men's Collection",
+    tagline: "Premium fashion for the modern gentleman",
     banners: ["/banners/men-page-banner.jpg", "/banners/men-collection.jpg"],
   },
   women: {
-    label: "Women's Ankara Collection",
-    tagline: "Elegant Ankara dresses, kimonos, and more for every occasion",
+    label: "Women's Collection",
+    tagline: "Elegant bodysuits, dresses, tops, and more for every occasion",
     banners: ["/banners/women-page-banner.jpg", "/banners/women-collection.jpg"],
   },
 }

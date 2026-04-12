@@ -19,7 +19,7 @@ const fallbackPosts: SocialPost[] = [
     id: "ig-fallback-1",
     platform: "instagram",
     thumbnailUrl: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/blue-white-african-ankara-print-plus-size-clothing-party-dress-435554-4htvoFTBgJR1myaOCHvUom98ShGAQL.jpeg",
-    caption: "Blue & White Ankara Spiral Midi Dress - Elegant style",
+    caption: "Black V-Neck Bodysuit - Sleek everyday style",
     url: "https://www.instagram.com/_classycollections/",
     authorName: "@_classycollections",
   },
@@ -27,7 +27,7 @@ const fallbackPosts: SocialPost[] = [
     id: "tt-fallback-1",
     platform: "tiktok",
     thumbnailUrl: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Red_Brown_Bulb_Sleeve_African_Ankara_Print_Short_Dress6%20%289%29-XeZkksLxT4lvS0FRgWJi1SUXXHGzTJ.jpeg",
-    caption: "How to style Ankara for any occasion - Bulb Sleeve Dress",
+    caption: "How to style bodysuits for any occasion - Off-Shoulder Look",
     url: "https://www.tiktok.com/@_classycollections",
     authorName: "@_classycollections",
   },
@@ -35,7 +35,7 @@ const fallbackPosts: SocialPost[] = [
     id: "ig-fallback-2",
     platform: "instagram",
     thumbnailUrl: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/green-gold-multi-african-ankara-print-plus-size-short-party-dress-407943-Ykn226QRyD5Bp2QSLNuywdZn9IYrWR.jpeg",
-    caption: "Green & Gold Ankara Off-Shoulder Flare Dress - Stunning",
+    caption: "Floral Corset Top - Stunning for date night",
     url: "https://www.instagram.com/_classycollections/",
     authorName: "@_classycollections",
   },
@@ -43,7 +43,7 @@ const fallbackPosts: SocialPost[] = [
     id: "tt-fallback-2",
     platform: "tiktok",
     thumbnailUrl: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/REDMULTIPLUSSIZEAFRICANANKARAPRINTFITTEDPARTYORGANZADRESS1_f65366fe-139f-4b9d-ac06-d61694a2d999%20%281%29-jnHPFzZLpoVSIZa3U9ghnqdC2Gjr1n.jpeg",
-    caption: "Red Ankara Organza Dress - Perfect for events",
+    caption: "Black Lace Dress - Perfect for events",
     url: "https://www.tiktok.com/@_classycollections",
     authorName: "@_classycollections",
   },
@@ -111,7 +111,7 @@ export function SocialFeed() {
             See What We Are Posting
           </h2>
           <p className="text-muted-foreground text-sm mt-3 max-w-lg mx-auto">
-            Follow us on Instagram and TikTok for the latest Ankara drops, styling tips, and exclusive collections.
+            Follow us on Instagram and TikTok for the latest drops, styling tips, and exclusive collections.
           </p>
         </div>
 

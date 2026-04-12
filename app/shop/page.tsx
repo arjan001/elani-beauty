@@ -3,23 +3,23 @@ import { ShopPage } from "@/components/store/shop-page"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Professional Ankara Suits & Shirts | Classy Collections",
+  title: "Women's Bodysuits, Dresses & Tops | Classy Collections",
   description:
-    "Browse premium Ankara suits and shirts at Classy Collections. Men's and women's Ankara fashion with high-quality African prints. Professional office wear, casual styles, and formal outfits. Delivered across Kenya.",
+    "Browse premium bodysuits, dresses, and tops at Classy Collections. Women's fashion with quality fabrics. Office wear, casual styles, and evening outfits. Delivered across Kenya.",
   alternates: { canonical: "https://classycollections.com/shop" },
   keywords: [
-    "classy collections shop", "ankara fashion Kenya", "shop ankara dresses", "buy ankara suits",
-    "women ankara dresses", "men ankara suits", "ankara kimonos Kenya", "ankara palazzo pants",
-    "african print clothing", "authentic ankara fashion", "best ankara designs Kenya",
-    "ankara fashion online", "premium ankara wear", "ready-made ankara suits",
-    "casual ankara outfits", "formal ankara wear", "affordable ankara fashion",
-    "Ankara office wear", "professional African wear", "Ankara business attire",
-    "Ankara party dresses", "Ankara wedding suits", "Ankara evening wear",
-    "buy ankara online Kenya", "ankara online store Kenya", "quality ankara clothing",
+    "classy collections shop", "women fashion Kenya", "shop bodysuits", "buy dresses Kenya",
+    "women bodysuits", "women dresses", "corset tops Kenya", "women tops",
+    "quality women clothing", "premium women fashion", "best women designs Kenya",
+    "women fashion online", "premium women wear", "curated women fashion",
+    "casual women outfits", "formal women wear", "affordable women fashion",
+    "women office wear", "professional women wear", "women business attire",
+    "party dresses Kenya", "evening dresses", "women evening wear",
+    "buy women clothing online Kenya", "women online store Kenya", "quality women clothing",
   ],
   openGraph: {
-    title: "Professional Ankara Suits & Shirts | Classy Collections",
-    description: "Premium Ankara suits, dresses, kimonos, and more. Quality African print fashion delivered across Kenya and East Africa.",
+    title: "Women's Bodysuits, Dresses & Tops | Classy Collections",
+    description: "Premium bodysuits, dresses, tops, and jackets. Quality women's fashion delivered across Kenya and East Africa.",
     url: "https://classycollections.com/shop",
     type: "website",
     siteName: "Classy Collections",
@@ -28,8 +28,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Professional Ankara Suits & Shirts | Classy Collections",
-    description: "Premium Ankara suits, dresses, kimonos, and more delivered across Kenya and East Africa.",
+    title: "Women's Bodysuits, Dresses & Tops | Classy Collections",
+    description: "Premium bodysuits, dresses, tops, and jackets delivered across Kenya and East Africa.",
     images: ["https://classycollections.com/logo.png"],
     creator: "@_classycollections",
   },
@@ -42,4 +42,3 @@ export default function Page() {
     </Suspense>
   )
 }
-

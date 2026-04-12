@@ -97,15 +97,15 @@ export function Navbar() {
             <SheetContent side="left" className="w-80 bg-background text-foreground p-0">
               <div className="p-6">
                 <Link href="/" className="font-serif text-2xl font-bold tracking-tight">
-                  Classy Collections
+                  Elani Beauty Hub
                 </Link>
               </div>
               <nav className="flex flex-col px-6 gap-1">
                 <Link href="/" className="py-3 text-sm font-medium border-b border-border">Home</Link>
                 <Link href="/shop" className="py-3 text-sm font-medium border-b border-border">Shop All</Link>
                 <p className="pt-3 pb-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Collections</p>
-                <Link href="/shop/men" className="py-2.5 text-sm border-b border-border pl-3">Men's Ankara</Link>
-                <Link href="/shop/women" className="py-2.5 text-sm border-b border-border pl-3">Women's Ankara</Link>
+                <Link href="/shop/men" className="py-2.5 text-sm border-b border-border pl-3">Men's Collection</Link>
+                <Link href="/shop/women" className="py-2.5 text-sm border-b border-border pl-3">Women's Collection</Link>
                 <p className="pt-3 pb-1 text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Categories</p>
                 {categories.map((cat) => (
                   <Link key={cat.id} href={`/shop?category=${cat.slug}`} className="py-2.5 text-sm border-b border-border pl-3">{cat.name}</Link>
@@ -120,7 +120,7 @@ export function Navbar() {
             </SheetContent>
           </Sheet>
 
-          <Link href="/" className="font-serif text-xl lg:text-2xl font-bold tracking-tight">Classy Collections</Link>
+          <Link href="/" className="font-serif text-xl lg:text-2xl font-bold tracking-tight">Elani Beauty Hub</Link>
 
           <div className="hidden lg:flex items-center flex-1 max-w-xl mx-8" ref={searchRef}>
             <form onSubmit={handleSearch} className="relative flex items-center w-full">
@@ -142,7 +142,7 @@ export function Navbar() {
                   </div>
                 )}
               </div>
-              <input type="text" placeholder="Search Ankara, suits, dresses..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="flex-1 h-10 px-4 bg-secondary text-sm text-foreground placeholder:text-muted-foreground outline-none" />
+              <input type="text" placeholder="Search bodysuits, dresses, tops..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="flex-1 h-10 px-4 bg-secondary text-sm text-foreground placeholder:text-muted-foreground outline-none" />
               <button type="submit" className="h-10 px-4 bg-foreground text-background rounded-r-sm"><Search className="h-4 w-4" /></button>
 
               {showSuggestions && (

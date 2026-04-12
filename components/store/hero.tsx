@@ -9,50 +9,50 @@ import useSWR from "swr"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
-const ANKARA_CAROUSEL_IMAGES = [
-  "/banners/hero-ankara-main.jpg",
-  "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/blue-white-african-ankara-print-plus-size-clothing-party-dress-435554-4htvoFTBgJR1myaOCHvUom98ShGAQL.jpeg",
-  "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/green-gold-multi-african-ankara-print-plus-size-short-party-dress-407943-Ykn226QRyD5Bp2QSLNuywdZn9IYrWR.jpeg",
+const CAROUSEL_IMAGES = [
+  "/banners/bodysuit-black-vneck.jpg",
+  "/banners/dress-black-lace-spaghetti.jpg",
+  "/banners/dress-halter-leopard.jpg",
 ]
 
 const FALLBACK_BANNERS: HeroBanner[] = [
   {
-    id: "women-dresses",
-    title: "Ankara Dresses Collection",
-    subtitle: "Stunning Ankara dresses for every occasion. From casual to formal, find your perfect style with our curated collection.",
-    collection: "women-ankara-dresses",
-    bannerImage: "/banners/hero-ankara-main.jpg",
-    linkUrl: "/shop?category=women-ankara-dresses",
-    buttonText: "Shop Dresses",
+    id: "women-bodysuits",
+    title: "Bodysuits Collection",
+    subtitle: "Sleek, sculpted bodysuits for every occasion. From casual layering to bold statement pieces — find your perfect fit.",
+    collection: "women-bodysuits",
+    bannerImage: "/banners/bodysuit-black-vneck.jpg",
+    linkUrl: "/shop?category=women-bodysuits",
+    buttonText: "Shop Bodysuits",
     sortOrder: 0,
   },
   {
-    id: "ankara-party",
-    title: "Ankara Party Dresses",
-    subtitle: "Premium Ankara dresses for weddings, events, and celebrations. Handcrafted elegance for every occasion.",
-    collection: "ankara-party",
-    bannerImage: "/banners/ankara-dresses-banner.jpg",
+    id: "women-dresses",
+    title: "Dresses & Tops",
+    subtitle: "Elegant dresses, floral tops, and corset pieces designed for the modern woman.",
+    collection: "women-dresses",
+    bannerImage: "/banners/dress-beige-wrap.jpg",
     linkUrl: "/shop?filter=new",
     buttonText: "Explore Collection",
     sortOrder: 1,
   },
   {
-    id: "ankara-new",
-    title: "New Ankara Arrivals",
-    subtitle: "Fresh styles added weekly. Kimonos, fitted dresses, and statement pieces for the modern African woman.",
-    collection: "ankara-new",
-    bannerImage: "/banners/ankara-new-arrivals-banner.jpg",
+    id: "new-arrivals",
+    title: "New Arrivals",
+    subtitle: "Fresh styles added weekly. Bodysuits, tops, dresses, and jackets — curated for you.",
+    collection: "new-arrivals",
+    bannerImage: "/banners/top-floral-garden.jpg",
     linkUrl: "/shop?filter=new",
     buttonText: "View New In",
     sortOrder: 2,
   },
 ]
 
-function AnkaraCarousel({ banner }: { banner: HeroBanner }) {
+function HeroCarousel({ banner }: { banner: HeroBanner }) {
   const [currentSlide, setCurrentSlide] = useState(0)
 
   const nextSlide = useCallback(() => {
-    setCurrentSlide((prev) => (prev + 1) % ANKARA_CAROUSEL_IMAGES.length)
+    setCurrentSlide((prev) => (prev + 1) % CAROUSEL_IMAGES.length)
   }, [])
 
   useEffect(() => {
@@ -66,7 +66,7 @@ function AnkaraCarousel({ banner }: { banner: HeroBanner }) {
       className="lg:col-span-8 relative overflow-hidden rounded-sm min-h-[400px] lg:min-h-[520px] flex items-end group"
     >
       <div className="absolute inset-0 z-0">
-        {ANKARA_CAROUSEL_IMAGES.map((src, i) => (
+        {CAROUSEL_IMAGES.map((src, i) => (
           <div
             key={src}
             className="absolute inset-0 transition-opacity duration-700"
@@ -84,7 +84,7 @@ function AnkaraCarousel({ banner }: { banner: HeroBanner }) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
       </div>
       <div className="relative z-10 p-8 lg:p-12 w-full">
-        <p className="text-white/80 text-xs tracking-[0.3em] uppercase mb-2">African Fashion</p>
+        <p className="text-white/80 text-xs tracking-[0.3em] uppercase mb-2">Women&apos;s Fashion</p>
         <h1 className="text-white text-4xl lg:text-5xl font-serif font-bold leading-tight text-balance">
           {banner.title}
         </h1>
@@ -112,7 +112,7 @@ function BannerImage({ src, alt, priority = false }: { src: string; alt: string;
   if (hasError) {
     return (
       <Image
-        src="/banners/hero-ankara-main.jpg"
+        src="/banners/bodysuit-black-vneck.jpg"
         alt={alt}
         fill
         className="object-cover"
@@ -130,7 +130,7 @@ function BannerImage({ src, alt, priority = false }: { src: string; alt: string;
       priority={priority}
       onError={() => {
         setHasError(true)
-        setImgSrc("/banners/hero-ankara-main.jpg")
+        setImgSrc("/banners/bodysuit-black-vneck.jpg")
       }}
     />
   )
@@ -145,9 +145,9 @@ export function Hero() {
 
     // Ensure each banner has a valid image, fallback to known images
     const validImages = [
-      "/banners/hero-ankara-main.jpg",
-      "/banners/ankara-dresses-banner.jpg",
-      "/banners/ankara-new-arrivals-banner.jpg",
+      "/banners/bodysuit-black-vneck.jpg",
+      "/banners/dress-beige-wrap.jpg",
+      "/banners/top-floral-garden.jpg",
     ]
 
     return banners.slice(0, 3).map((b, i) => ({
@@ -171,7 +171,7 @@ export function Hero() {
       <div className="mx-auto max-w-7xl px-4 py-6 lg:py-0">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 items-stretch">
           {/* Main Banner with Carousel */}
-          <AnkaraCarousel banner={mainBanner} />
+          <HeroCarousel banner={mainBanner} />
 
           {/* Side Banners */}
           <div className="lg:col-span-4 flex flex-col gap-4 lg:gap-6">
