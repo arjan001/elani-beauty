@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next"
 import { createClient } from "@supabase/supabase-js"
+import { SITE_SEO } from "@/lib/seo-data"
 
-const SITE_URL = "https://classycollections.com"
+const SITE_URL = SITE_SEO.siteUrl
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Static pages (only pages that should be indexed — excludes noindex pages like privacy-policy, terms, etc.)
@@ -55,9 +56,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
     {
-      url: `${SITE_URL}/track-order`,
+      url: `${SITE_URL}/wishlist`,
       lastModified: new Date(),
-      changeFrequency: "monthly",
+      changeFrequency: "weekly",
       priority: 0.6,
     },
   ]

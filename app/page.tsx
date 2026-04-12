@@ -1,13 +1,13 @@
 import { LandingPage } from "@/components/store/landing-page"
 import type { Metadata } from "next"
-import { SITE_SEO, PAGE_SEO } from "@/lib/seo-data"
+import { SITE_SEO, PAGE_SEO, PAGE_KEYWORDS } from "@/lib/seo-data"
 
 const siteUrl = SITE_SEO.siteUrl
 
 export const metadata: Metadata = {
   title: PAGE_SEO.home.title,
   description: PAGE_SEO.home.description,
-  keywords: SITE_SEO.allKeywords,
+  keywords: PAGE_KEYWORDS.home,
   alternates: { canonical: siteUrl },
   openGraph: {
     title: PAGE_SEO.home.title,

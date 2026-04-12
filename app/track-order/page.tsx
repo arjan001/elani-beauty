@@ -4,18 +4,14 @@ import { TopBar } from "@/components/store/top-bar"
 import { Navbar } from "@/components/store/navbar"
 import { Footer } from "@/components/store/footer"
 import { TrackOrderForm } from "@/components/store/track-order-form"
-import { PAGE_SEO, SITE_SEO } from "@/lib/seo-data"
+import { PAGE_SEO, SITE_SEO, PAGE_KEYWORDS } from "@/lib/seo-data"
 
 export const metadata: Metadata = {
   title: PAGE_SEO.trackOrder.title,
   description: PAGE_SEO.trackOrder.description,
   robots: { index: PAGE_SEO.trackOrder.noindex ? false : true, follow: true },
   alternates: { canonical: `${SITE_SEO.siteUrl}/track-order` },
-  keywords: [
-    "track order Elani Beauty Hub", "fashion delivery tracking", "order status Kenya",
-    "Elani Beauty Hub order status", "fashion delivery Kenya", "check order status",
-    "delivery tracking Nairobi", "order tracking Kenya", "Elani Beauty Hub delivery",
-  ],
+  keywords: PAGE_KEYWORDS.trackOrder,
   openGraph: {
     title: PAGE_SEO.trackOrder.title,
     description: PAGE_SEO.trackOrder.description,

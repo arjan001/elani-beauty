@@ -1,22 +1,16 @@
 import { CollectionPage } from "@/components/store/collection-page"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { SITE_SEO, PAGE_SEO } from "@/lib/seo-data"
+import { SITE_SEO, PAGE_SEO, PAGE_KEYWORDS } from "@/lib/seo-data"
 
 const siteUrl = SITE_SEO.siteUrl
-const VALID_COLLECTIONS = ["men", "women"] as const
+const VALID_COLLECTIONS = ["men", "women", "babyshop"] as const
 
 const META: Record<string, { title: string; description: string; keywords: string[]; schema: Record<string, unknown> }> = {
   men: {
     title: PAGE_SEO.menCollection.title,
     description: PAGE_SEO.menCollection.description,
-    keywords: [
-      "mens thrift fashion Kenya", "mens thrift shirts Nairobi", "mens thrift jackets",
-      "men fashion Nairobi", "Elani Beauty Hub men", "thrift mens clothing Kenya",
-      "mens formal wear thrift", "mens casual wear thrift", "professional men wear Kenya",
-      "mens business attire Nairobi", "buy mens clothes online Kenya", "affordable mens fashion",
-      "second hand mens clothes Kenya", "preloved mens fashion Nairobi",
-    ],
+    keywords: PAGE_KEYWORDS.menCollection,
     schema: {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
@@ -34,15 +28,7 @@ const META: Record<string, { title: string; description: string; keywords: strin
   women: {
     title: PAGE_SEO.womenCollection.title,
     description: PAGE_SEO.womenCollection.description,
-    keywords: [
-      "womens thrift fashion Kenya", "thrift tops Nairobi", "thrift dresses Kenya",
-      "thrift bodysuits Nairobi", "thrift jackets Kenya", "Elani Beauty Hub women",
-      "women dresses Nairobi", "women tops Kenya", "best place to buy dresses Nairobi",
-      "best place to buy tops Kenya", "wedding guest outfits thrift", "party dresses thrift",
-      "casual women wear thrift", "women office wear thrift", "professional women wear Kenya",
-      "evening dresses thrift", "affordable women fashion Nairobi", "preloved women fashion Kenya",
-      "matching sets women thrift", "plus size thrift Kenya",
-    ],
+    keywords: PAGE_KEYWORDS.womenCollection,
     schema: {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
@@ -53,6 +39,24 @@ const META: Record<string, { title: string; description: string; keywords: strin
         "@type": "ItemCollection",
         name: "Women's Thrift & New Fashion",
         description: "Curated collection of quality thrift and new women's styles from Elani Beauty Hub",
+        inLanguage: "en",
+      },
+    },
+  },
+  babyshop: {
+    title: PAGE_SEO.babyShop.title,
+    description: PAGE_SEO.babyShop.description,
+    keywords: PAGE_KEYWORDS.babyShop,
+    schema: {
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      name: "Baby & Kids Thrift & New Collection",
+      description: "Affordable thrift and new baby and kids clothing at Elani Beauty Hub Nairobi",
+      url: `${siteUrl}/shop/babyshop`,
+      mainEntity: {
+        "@type": "ItemCollection",
+        name: "Baby & Kids Thrift & New Fashion",
+        description: "Curated collection of quality thrift and new baby and kids clothing from Elani Beauty Hub",
         inLanguage: "en",
       },
     },
