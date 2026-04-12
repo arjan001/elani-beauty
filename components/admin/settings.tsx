@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Save, Globe, Palette, FileText, Search, Plus, Pencil, Trash2, X, Check, ExternalLink, Eye, EyeOff } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import { Save, Globe, Palette, FileText, Search, Plus, Pencil, Trash2, X, Check, ExternalLink, Eye, EyeOff, TrendingUp, BarChart3, Shield, AlertTriangle, CheckCircle2, XCircle, ArrowUpRight, Clock, Users, MousePointerClick, Activity } from "lucide-react"
 import { AdminShell } from "./admin-shell"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -229,22 +229,88 @@ interface SeoPage {
   created_at: string; updated_at: string
 }
 
+interface SeoCheck {
+  label: string; passed: boolean; weight: number; tip: string
+}
+
+interface SeoPageAnalytics {
+  id: string; page_path: string; page_title: string; meta_title: string; meta_description: string; no_index: boolean
+  seoScore: number; checks: SeoCheck[]; discoverability: string
+  traffic: {
+    views30d: number; views7d: number; uniqueVisitors: number; avgDuration: number; searchTraffic: number
+    referrers: { source: string; count: number }[]
+  }
+}
+
+interface SeoAnalyticsData {
+  overview: {
+    avgSeoScore: number; totalPages: number; indexedPages: number; pagesWithIssues: number
+    totalTraffic30d: number; searchEngineTraffic: number; searchTrafficPercent: number
+  }
+  pages: SeoPageAnalytics[]
+  topReferrers: { source: string; count: number; isSearch: boolean }[]
+}
+
 const emptySeo: Partial<SeoPage> = {
   page_path: "", page_title: "", meta_title: "", meta_description: "",
   meta_keywords: "", og_title: "", og_description: "", og_image: "",
   canonical_url: "", no_index: false, no_follow: false,
 }
 
+function ScoreRing({ score, size = 48, strokeWidth = 4 }: { score: number; size?: number; strokeWidth?: number }) {
+  const r = (size - strokeWidth) / 2
+  const circ = 2 * Math.PI * r
+  const offset = circ - (score / 100) * circ
+  const color = score >= 80 ? "#22c55e" : score >= 60 ? "#eab308" : score >= 40 ? "#f97316" : "#ef4444"
+  return (
+    <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="currentColor" className="text-secondary" strokeWidth={strokeWidth} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" style={{ transition: "stroke-dashoffset 0.6s ease" }} />
+      </svg>
+      <span className="absolute text-xs font-bold" style={{ color }}>{score}</span>
+    </div>
+  )
+}
+
+function DiscoverabilityBadge({ level }: { level: string }) {
+  const config: Record<string, { bg: string; text: string; label: string }> = {
+    excellent: { bg: "bg-emerald-100 dark:bg-emerald-900/30", text: "text-emerald-700 dark:text-emerald-400", label: "Excellent" },
+    good: { bg: "bg-blue-100 dark:bg-blue-900/30", text: "text-blue-700 dark:text-blue-400", label: "Good" },
+    fair: { bg: "bg-amber-100 dark:bg-amber-900/30", text: "text-amber-700 dark:text-amber-400", label: "Fair" },
+    poor: { bg: "bg-red-100 dark:bg-red-900/30", text: "text-red-700 dark:text-red-400", label: "Poor" },
+    hidden: { bg: "bg-gray-100 dark:bg-gray-800", text: "text-gray-500", label: "Hidden" },
+  }
+  const c = config[level] || config.poor
+  return <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${c.bg} ${c.text}`}>{c.label}</span>
+}
+
 function SeoManager() {
-  const { data: pages = [], mutate } = useSWR<SeoPage[]>("/api/admin/seo", fetcher)
+  const { data: rawPages, mutate: mutatePages } = useSWR("/api/admin/seo", fetcher)
+  const { data: analytics, mutate: mutateAnalytics } = useSWR<SeoAnalyticsData>("/api/admin/seo/analytics", fetcher)
   const [editing, setEditing] = useState<Partial<SeoPage> | null>(null)
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState("")
+  const [activeView, setActiveView] = useState<"overview" | "pages">("overview")
+  const [expandedPage, setExpandedPage] = useState<string | null>(null)
 
-  const filtered = pages.filter((p) =>
-    p.page_path.toLowerCase().includes(search.toLowerCase()) ||
-    (p.page_title || "").toLowerCase().includes(search.toLowerCase())
-  )
+  // Guard: ensure pages is always an array (fixes crash when API returns error object)
+  const pages: SeoPage[] = Array.isArray(rawPages) ? rawPages : []
+
+  const filtered = useMemo(() =>
+    pages.filter((p) =>
+      p.page_path.toLowerCase().includes(search.toLowerCase()) ||
+      (p.page_title || "").toLowerCase().includes(search.toLowerCase())
+    ), [pages, search])
+
+  const analyticsPages = useMemo(() => {
+    if (!analytics?.pages) return []
+    if (!search) return analytics.pages
+    return analytics.pages.filter(p =>
+      p.page_path.toLowerCase().includes(search.toLowerCase()) ||
+      (p.page_title || "").toLowerCase().includes(search.toLowerCase())
+    )
+  }, [analytics, search])
 
   const handleSave = async () => {
     if (!editing) return
@@ -254,7 +320,8 @@ function SeoManager() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(editing),
     })
-    mutate()
+    mutatePages()
+    mutateAnalytics()
     setSaving(false)
     setEditing(null)
   }
@@ -266,12 +333,14 @@ function SeoManager() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
     })
-    mutate()
+    mutatePages()
+    mutateAnalytics()
   }
 
   const titleLen = (editing?.meta_title || "").length
   const descLen = (editing?.meta_description || "").length
 
+  // ── Editing view ──
   if (editing) {
     return (
       <div className="space-y-6">
@@ -291,7 +360,6 @@ function SeoManager() {
           </Button>
         </div>
 
-        {/* Page path */}
         <div className="border border-border rounded-sm p-5 space-y-4">
           <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Page</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -306,7 +374,6 @@ function SeoManager() {
           </div>
         </div>
 
-        {/* Meta tags with live character counters */}
         <div className="border border-border rounded-sm p-5 space-y-4">
           <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
             <Search className="h-3.5 w-3.5" /> Meta Tags
@@ -335,7 +402,6 @@ function SeoManager() {
           </div>
         </div>
 
-        {/* Google preview */}
         <div className="border border-border rounded-sm p-5 space-y-3">
           <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
             <Eye className="h-3.5 w-3.5" /> Google Search Preview
@@ -347,7 +413,6 @@ function SeoManager() {
           </div>
         </div>
 
-        {/* Open Graph */}
         <div className="border border-border rounded-sm p-5 space-y-4">
           <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
             <ExternalLink className="h-3.5 w-3.5" /> Open Graph (Social Sharing)
@@ -368,7 +433,6 @@ function SeoManager() {
           </div>
         </div>
 
-        {/* Advanced */}
         <div className="border border-border rounded-sm p-5 space-y-4">
           <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Advanced</h4>
           <div>
@@ -396,52 +460,307 @@ function SeoManager() {
     )
   }
 
+  const overview = analytics?.overview
+  const topRefs = analytics?.topReferrers || []
+
+  // ── Main view with sub-tabs ──
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2"><Globe className="h-4 w-4" /> SEO Manager</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Manage meta tags, descriptions, Open Graph, and indexing for each page.</p>
+          <p className="text-xs text-muted-foreground mt-0.5">SEO health, rankings, discoverability, and page optimization.</p>
         </div>
         <Button onClick={() => setEditing({ ...emptySeo })} className="bg-foreground text-background hover:bg-foreground/90">
           <Plus className="h-4 w-4 mr-2" /> Add Page
         </Button>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" placeholder="Search pages..." />
+      {/* Sub-navigation */}
+      <div className="flex gap-1 border-b border-border">
+        <button
+          onClick={() => setActiveView("overview")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeView === "overview" ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+        >
+          <BarChart3 className="h-3.5 w-3.5 inline mr-1.5 -mt-0.5" />
+          Overview & Ranks
+        </button>
+        <button
+          onClick={() => setActiveView("pages")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeView === "pages" ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+        >
+          <FileText className="h-3.5 w-3.5 inline mr-1.5 -mt-0.5" />
+          Manage Pages
+        </button>
       </div>
 
-      <div className="border border-border rounded-sm divide-y divide-border">
-        {filtered.length === 0 ? (
-          <div className="px-5 py-10 text-center text-sm text-muted-foreground">No SEO entries found</div>
-        ) : filtered.map((page) => (
-          <div key={page.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-secondary/20 transition-colors">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-medium">{page.page_title || page.page_path}</p>
-                {page.no_index && <span className="text-[10px] px-1.5 py-0.5 bg-destructive/10 text-destructive rounded">noindex</span>}
+      {/* ── OVERVIEW TAB ── */}
+      {activeView === "overview" && (
+        <div className="space-y-6">
+          {/* Site-wide SEO metrics */}
+          {overview ? (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="border border-border rounded-sm p-4 text-center">
+                  <ScoreRing score={overview.avgSeoScore} size={56} strokeWidth={5} />
+                  <p className="text-xs text-muted-foreground mt-2">Avg SEO Score</p>
+                </div>
+                <div className="border border-border rounded-sm p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Shield className="h-4 w-4 text-emerald-500" />
+                    <span className="text-xl font-bold">{overview.indexedPages}/{overview.totalPages}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Indexed Pages</p>
+                </div>
+                <div className="border border-border rounded-sm p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Activity className="h-4 w-4 text-blue-500" />
+                    <span className="text-xl font-bold">{overview.totalTraffic30d.toLocaleString()}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Visits (30d)</p>
+                </div>
+                <div className="border border-border rounded-sm p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <TrendingUp className="h-4 w-4 text-amber-500" />
+                    <span className="text-xl font-bold">{overview.searchTrafficPercent}%</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">From Search Engines</p>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">{page.page_path}</p>
-              {page.meta_title && (
-                <p className="text-xs text-blue-600 mt-1 truncate">{page.meta_title}</p>
+
+              {/* Issues alert */}
+              {overview.pagesWithIssues > 0 && (
+                <div className="border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 rounded-sm p-4 flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-800 dark:text-amber-300">{overview.pagesWithIssues} page{overview.pagesWithIssues > 1 ? "s" : ""} need{overview.pagesWithIssues === 1 ? "s" : ""} attention</p>
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">Pages scoring below 60 have significant SEO gaps that may hurt discoverability.</p>
+                  </div>
+                </div>
               )}
-              {page.meta_description && (
-                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{page.meta_description}</p>
+
+              {/* Top referrers / traffic sources */}
+              {topRefs.length > 0 && (
+                <div className="border border-border rounded-sm p-5 space-y-3">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                    <ArrowUpRight className="h-3.5 w-3.5" /> Top Traffic Sources (30d)
+                  </h4>
+                  <div className="space-y-2">
+                    {topRefs.map((ref, i) => {
+                      const maxCount = topRefs[0]?.count || 1
+                      return (
+                        <div key={i} className="flex items-center gap-3">
+                          <span className="text-xs text-muted-foreground w-5 text-right">{i + 1}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm truncate flex items-center gap-1.5">
+                                {ref.source}
+                                {ref.isSearch && <Search className="h-3 w-3 text-blue-500" />}
+                              </span>
+                              <span className="text-xs text-muted-foreground ml-2 flex-shrink-0">{ref.count} visits</span>
+                            </div>
+                            <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all ${ref.isSearch ? "bg-blue-500" : "bg-foreground/30"}`}
+                                style={{ width: `${(ref.count / maxCount) * 100}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
               )}
+            </>
+          ) : (
+            <div className="border border-border rounded-sm p-10 text-center text-sm text-muted-foreground">Loading SEO analytics...</div>
+          )}
+
+          {/* Page rankings table */}
+          <div className="border border-border rounded-sm overflow-hidden">
+            <div className="px-5 py-3 bg-secondary/30 border-b border-border">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Page SEO Rankings</h4>
             </div>
-            <div className="flex items-center gap-1 flex-shrink-0 ml-4">
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing(page)}>
-                <Pencil className="h-3.5 w-3.5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(page.id)}>
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
+            {/* Search */}
+            <div className="px-5 py-3 border-b border-border">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-9" placeholder="Filter pages..." />
+              </div>
+            </div>
+            {/* Header */}
+            <div className="hidden sm:grid sm:grid-cols-12 gap-2 px-5 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground border-b border-border bg-secondary/10">
+              <div className="col-span-4">Page</div>
+              <div className="col-span-1 text-center">Score</div>
+              <div className="col-span-2 text-center">Discoverability</div>
+              <div className="col-span-1 text-center">Views</div>
+              <div className="col-span-1 text-center">Search</div>
+              <div className="col-span-1 text-center">Visitors</div>
+              <div className="col-span-2 text-center">Actions</div>
+            </div>
+            <div className="divide-y divide-border">
+              {analyticsPages.length === 0 ? (
+                <div className="px-5 py-10 text-center text-sm text-muted-foreground">
+                  {analytics ? "No SEO entries found" : "Loading..."}
+                </div>
+              ) : analyticsPages.map((page) => (
+                <div key={page.id}>
+                  <div
+                    className="sm:grid sm:grid-cols-12 gap-2 px-5 py-3 hover:bg-secondary/20 transition-colors cursor-pointer items-center"
+                    onClick={() => setExpandedPage(expandedPage === page.id ? null : page.id)}
+                  >
+                    <div className="col-span-4 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium truncate">{page.page_title || page.page_path}</p>
+                        {page.no_index && <span className="text-[10px] px-1.5 py-0.5 bg-destructive/10 text-destructive rounded flex-shrink-0">noindex</span>}
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">{page.page_path}</p>
+                    </div>
+                    <div className="col-span-1 flex justify-center">
+                      <ScoreRing score={page.seoScore} size={36} strokeWidth={3} />
+                    </div>
+                    <div className="col-span-2 flex justify-center">
+                      <DiscoverabilityBadge level={page.discoverability} />
+                    </div>
+                    <div className="col-span-1 text-center">
+                      <p className="text-sm font-medium">{page.traffic.views30d}</p>
+                      <p className="text-[10px] text-muted-foreground">{page.traffic.views7d} /7d</p>
+                    </div>
+                    <div className="col-span-1 text-center">
+                      <p className="text-sm font-medium">{page.traffic.searchTraffic}</p>
+                    </div>
+                    <div className="col-span-1 text-center">
+                      <p className="text-sm font-medium">{page.traffic.uniqueVisitors}</p>
+                    </div>
+                    <div className="col-span-2 flex justify-center gap-1" onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+                        const match = pages.find(p => p.id === page.id)
+                        if (match) setEditing(match)
+                      }}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(page.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Expanded details */}
+                  {expandedPage === page.id && (
+                    <div className="px-5 pb-4 bg-secondary/5 border-t border-border/50">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3">
+                        {/* SEO checklist */}
+                        <div className="space-y-2">
+                          <h5 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">SEO Checklist</h5>
+                          {page.checks.map((check, i) => (
+                            <div key={i} className="flex items-start gap-2">
+                              {check.passed ? (
+                                <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" />
+                              )}
+                              <div>
+                                <p className="text-xs font-medium">{check.label}</p>
+                                <p className="text-[10px] text-muted-foreground">{check.tip}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {/* Traffic details */}
+                        <div className="space-y-3">
+                          <h5 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Traffic Details</h5>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="bg-secondary/30 rounded-sm p-2.5">
+                              <div className="flex items-center gap-1.5">
+                                <MousePointerClick className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span className="text-sm font-semibold">{page.traffic.views30d}</span>
+                              </div>
+                              <p className="text-[10px] text-muted-foreground">Page Views (30d)</p>
+                            </div>
+                            <div className="bg-secondary/30 rounded-sm p-2.5">
+                              <div className="flex items-center gap-1.5">
+                                <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span className="text-sm font-semibold">{page.traffic.uniqueVisitors}</span>
+                              </div>
+                              <p className="text-[10px] text-muted-foreground">Unique Visitors</p>
+                            </div>
+                            <div className="bg-secondary/30 rounded-sm p-2.5">
+                              <div className="flex items-center gap-1.5">
+                                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span className="text-sm font-semibold">{page.traffic.avgDuration > 0 ? `${Math.floor(page.traffic.avgDuration / 60)}m ${page.traffic.avgDuration % 60}s` : "--"}</span>
+                              </div>
+                              <p className="text-[10px] text-muted-foreground">Avg Duration</p>
+                            </div>
+                            <div className="bg-secondary/30 rounded-sm p-2.5">
+                              <div className="flex items-center gap-1.5">
+                                <Search className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span className="text-sm font-semibold">{page.traffic.searchTraffic}</span>
+                              </div>
+                              <p className="text-[10px] text-muted-foreground">Search Engine Hits</p>
+                            </div>
+                          </div>
+                          {page.traffic.referrers.length > 0 && (
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-1.5">Referrers</p>
+                              {page.traffic.referrers.map((ref, i) => (
+                                <div key={i} className="flex items-center justify-between py-0.5">
+                                  <span className="text-xs truncate">{ref.source}</span>
+                                  <span className="text-xs text-muted-foreground ml-2">{ref.count}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
+
+      {/* ── MANAGE PAGES TAB ── */}
+      {activeView === "pages" && (
+        <div className="space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" placeholder="Search pages..." />
+          </div>
+
+          <div className="border border-border rounded-sm divide-y divide-border">
+            {filtered.length === 0 ? (
+              <div className="px-5 py-10 text-center text-sm text-muted-foreground">No SEO entries found</div>
+            ) : filtered.map((page) => (
+              <div key={page.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-secondary/20 transition-colors">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium">{page.page_title || page.page_path}</p>
+                    {page.no_index && <span className="text-[10px] px-1.5 py-0.5 bg-destructive/10 text-destructive rounded">noindex</span>}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">{page.page_path}</p>
+                  {page.meta_title && (
+                    <p className="text-xs text-blue-600 mt-1 truncate">{page.meta_title}</p>
+                  )}
+                  {page.meta_description && (
+                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{page.meta_description}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0 ml-4">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing(page)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(page.id)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
