@@ -2,64 +2,56 @@ import type { MetadataRoute } from "next"
 import { createClient } from "@supabase/supabase-js"
 import { SITE_SEO } from "@/lib/seo-data"
 
+export const revalidate = 3600 // regenerate sitemap at most once per hour
+
 const SITE_URL = SITE_SEO.siteUrl
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  // Static pages (only pages that should be indexed — excludes noindex pages like privacy-policy, terms, etc.)
+  const now = new Date()
+
+  // Static pages — only clean path URLs, no query parameters
   const staticPages: MetadataRoute.Sitemap = [
     {
       url: SITE_URL,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "daily",
       priority: 1.0,
     },
     {
       url: `${SITE_URL}/shop`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "daily",
       priority: 0.9,
     },
     {
       url: `${SITE_URL}/shop/men`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "daily",
       priority: 0.9,
     },
     {
       url: `${SITE_URL}/shop/women`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "daily",
       priority: 0.9,
     },
     {
       url: `${SITE_URL}/shop/babyshop`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "daily",
       priority: 0.9,
     },
     {
-      url: `${SITE_URL}/shop?filter=new`,
-      lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 0.8,
-    },
-    {
-      url: `${SITE_URL}/shop?filter=offers`,
-      lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 0.8,
-    },
-    {
       url: `${SITE_URL}/delivery`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "monthly",
-      priority: 0.8,
+      priority: 0.5,
     },
     {
-      url: `${SITE_URL}/wishlist`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.6,
+      url: `${SITE_URL}/track-order`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.3,
     },
   ]
 
@@ -86,15 +78,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.8,
       }))
 
-      // Category pages
+      // Category pages as clean path URLs via collection routes
       const { data: categories } = await supabase
         .from("categories")
         .select("slug")
         .eq("is_active", true)
 
       categoryPages = (categories || []).map((c) => ({
-        url: `${SITE_URL}/shop?category=${c.slug}`,
-        lastModified: new Date(),
+        url: `${SITE_URL}/shop/${c.slug}`,
+        lastModified: now,
         changeFrequency: "weekly" as const,
         priority: 0.7,
       }))
