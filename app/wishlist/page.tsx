@@ -2,31 +2,36 @@ import type { Metadata } from "next"
 import { WishlistPage } from "@/components/store/wishlist-page"
 import { PAGE_SEO, SITE_SEO } from "@/lib/seo-data"
 
+const siteUrl = SITE_SEO.siteUrl
+
 export const metadata: Metadata = {
   title: PAGE_SEO.wishlist.title,
   description: PAGE_SEO.wishlist.description,
-  alternates: { canonical: `${SITE_SEO.siteUrl}/wishlist` },
+  alternates: { canonical: `${siteUrl}/wishlist` },
   keywords: [
-    "Elani Beauty Hub wishlist", "saved fashion pieces", "favourite beauty items",
+    "Elani Beauty Hub wishlist", "saved fashion pieces", "thrift wishlist Kenya",
     "fashion wishlist Kenya", "women fashion collection", "Elani Beauty Hub saved items",
-    "buy later fashion", "curated fashion picks", "Elani Beauty Hub wishlist",
+    "buy later fashion", "curated thrift picks", "save thrift items Kenya",
   ],
-  authors: [{ name: SITE_SEO.siteName, url: SITE_SEO.siteUrl }],
+  authors: [{ name: SITE_SEO.siteName, url: siteUrl }],
   creator: SITE_SEO.siteName,
   publisher: SITE_SEO.siteName,
   openGraph: {
     title: PAGE_SEO.wishlist.title,
     description: PAGE_SEO.wishlist.description,
-    url: `${SITE_SEO.siteUrl}/wishlist`,
-    siteName: SITE_SEO.siteName,
+    url: `${siteUrl}/wishlist`,
+    siteName: "Elani Beauty Hub",
     type: "website",
     locale: "en_KE",
+    images: [{ url: `${siteUrl}/logo-kf.png`, width: 512, height: 512, alt: "Elani Beauty Hub Wishlist" }],
   },
   twitter: {
     card: "summary",
+    site: "@_classycollections",
+    creator: "@_classycollections",
     title: PAGE_SEO.wishlist.title,
     description: PAGE_SEO.wishlist.description,
-    creator: `@${SITE_SEO.twitter}`,
+    images: [{ url: `${siteUrl}/logo-kf.png`, alt: "Elani Beauty Hub" }],
   },
 }
 

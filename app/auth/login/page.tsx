@@ -51,7 +51,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <Link href="/" className="font-serif text-3xl font-bold tracking-tight">
-            Classy Collections
+            Elani Beauty Hub
           </Link>
           <p className="text-sm text-muted-foreground mt-2">Sign in to admin dashboard</p>
         </div>

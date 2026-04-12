@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     type: "website",
     siteName: SITE_SEO.siteName,
     locale: "en_KE",
-    images: [{ url: `${SITE_SEO.siteUrl}/logo.png`, width: 512, height: 512, alt: "Classy Collections Order Tracking" }],
+    images: [{ url: `${SITE_SEO.siteUrl}/logo-kf.png`, width: 512, height: 512, alt: "Elani Beauty Hub Order Tracking" }],
   },
   twitter: {
     card: "summary",

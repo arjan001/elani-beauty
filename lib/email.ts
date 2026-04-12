@@ -205,13 +205,13 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData): Promise<
   }
 
   try {
-    const fromName = process.env.SMTP_FROM_NAME || "Classy Collections"
+    const fromName = process.env.SMTP_FROM_NAME || "Elani Beauty Hub"
     const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER
 
     await transporter.sendMail({
       from: `"${fromName}" <${fromEmail}>`,
       to: data.customerEmail,
-      subject: `Order Confirmed - ${data.orderNumber} | Classy Collections`,
+      subject: `Order Confirmed - ${data.orderNumber} | Elani Beauty Hub`,
       html: buildOrderEmailHtml(data),
     })
 

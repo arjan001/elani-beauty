@@ -1,51 +1,58 @@
 import { CollectionPage } from "@/components/store/collection-page"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
+import { SITE_SEO, PAGE_SEO } from "@/lib/seo-data"
 
+const siteUrl = SITE_SEO.siteUrl
 const VALID_COLLECTIONS = ["men", "women"] as const
 
 const META: Record<string, { title: string; description: string; keywords: string[]; schema: Record<string, unknown> }> = {
   men: {
-    title: "Men's Fashion | Classy Collections",
-    description: "Shop premium men's fashion at Classy Collections. Tailored suits, casual shirts, and more. Quality clothing for the modern gentleman. Delivered across Kenya.",
+    title: PAGE_SEO.menCollection.title,
+    description: PAGE_SEO.menCollection.description,
     keywords: [
-      "mens suits Kenya", "mens shirts", "mens fashion Nairobi", "mens collection",
-      "classy collections men", "men's shirts", "fashion Nairobi", "mens formal wear",
-      "mens casual wear", "professional men wear", "mens business attire",
+      "mens thrift fashion Kenya", "mens thrift shirts Nairobi", "mens thrift jackets",
+      "men fashion Nairobi", "Elani Beauty Hub men", "thrift mens clothing Kenya",
+      "mens formal wear thrift", "mens casual wear thrift", "professional men wear Kenya",
+      "mens business attire Nairobi", "buy mens clothes online Kenya", "affordable mens fashion",
+      "second hand mens clothes Kenya", "preloved mens fashion Nairobi",
     ],
     schema: {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
-      name: "Men's Collection",
-      description: "Premium men's fashion collection featuring suits, shirts, and more",
-      url: "https://classycollections.com/shop/men",
+      name: "Men's Thrift & New Collection",
+      description: "Affordable thrift and new men's fashion collection at Elani Beauty Hub Nairobi",
+      url: `${siteUrl}/shop/men`,
       mainEntity: {
         "@type": "ItemCollection",
-        name: "Men's Fashion",
-        description: "Curated collection of premium men's clothing from Classy Collections",
+        name: "Men's Thrift & New Fashion",
+        description: "Curated collection of quality thrift and new men's clothing from Elani Beauty Hub",
         inLanguage: "en",
       },
     },
   },
   women: {
-    title: "Women's Bodysuits, Dresses & Trendy Tops | Classy Collections",
-    description: "Discover premium women's fashion at Classy Collections. Elegant dresses, trendy bodysuits, tops, corsets, and jackets. Stylish pieces for every occasion. Fast delivery across Kenya.",
+    title: PAGE_SEO.womenCollection.title,
+    description: PAGE_SEO.womenCollection.description,
     keywords: [
-      "womens bodysuits Kenya", "women dresses", "womens fashion Nairobi", "women tops", "corset tops Kenya",
-      "women dresses Nairobi", "classy collections women", "wedding guest outfits", "party dresses",
-      "casual women wear", "women office wear", "professional women wear", "evening dresses", "holiday outfits",
-      "trendy women tops", "matching sets women", "plus size bodysuits", "women accessories",
+      "womens thrift fashion Kenya", "thrift tops Nairobi", "thrift dresses Kenya",
+      "thrift bodysuits Nairobi", "thrift jackets Kenya", "Elani Beauty Hub women",
+      "women dresses Nairobi", "women tops Kenya", "best place to buy dresses Nairobi",
+      "best place to buy tops Kenya", "wedding guest outfits thrift", "party dresses thrift",
+      "casual women wear thrift", "women office wear thrift", "professional women wear Kenya",
+      "evening dresses thrift", "affordable women fashion Nairobi", "preloved women fashion Kenya",
+      "matching sets women thrift", "plus size thrift Kenya",
     ],
     schema: {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
-      name: "Women's Collection",
-      description: "Premium women's fashion collection featuring bodysuits, dresses, tops, corsets, and jackets",
-      url: "https://classycollections.com/shop/women",
+      name: "Women's Thrift & New Collection",
+      description: "Best thrift and new women's tops, dresses, bodysuits, and jackets at Elani Beauty Hub Nairobi",
+      url: `${siteUrl}/shop/women`,
       mainEntity: {
         "@type": "ItemCollection",
-        name: "Women's Fashion",
-        description: "Curated collection of premium women's styles from Classy Collections",
+        name: "Women's Thrift & New Fashion",
+        description: "Curated collection of quality thrift and new women's styles from Elani Beauty Hub",
         inLanguage: "en",
       },
     },
@@ -56,31 +63,32 @@ export async function generateMetadata({ params }: { params: Promise<{ collectio
   const { collection } = await params
   const meta = META[collection]
   if (!meta) return { title: "Collection Not Found" }
-  
+
   return {
     title: meta.title,
     description: meta.description,
     keywords: meta.keywords,
-    authors: [{ name: "Classy Collections", url: "https://classycollections.com" }],
-    creator: "Classy Collections",
+    authors: [{ name: "Elani Beauty Hub", url: siteUrl }],
+    creator: "Elani Beauty Hub",
     openGraph: {
       title: meta.title,
       description: meta.description,
-      url: `https://classycollections.com/shop/${collection}`,
+      url: `${siteUrl}/shop/${collection}`,
       type: "website",
-      siteName: "Classy Collections",
+      siteName: "Elani Beauty Hub",
       locale: "en_KE",
-      images: [{ url: "https://classycollections.com/logo.png", width: 512, height: 512, alt: meta.title }],
+      images: [{ url: `${siteUrl}/logo-kf.png`, width: 512, height: 512, alt: meta.title }],
     },
     twitter: {
       card: "summary_large_image",
+      site: "@_classycollections",
+      creator: "@_classycollections",
       title: meta.title,
       description: meta.description,
-      images: ["https://classycollections.com/logo.png"],
-      creator: "@_classycollections",
+      images: [{ url: `${siteUrl}/logo-kf.png`, alt: meta.title }],
     },
     alternates: {
-      canonical: `https://classycollections.com/shop/${collection}`,
+      canonical: `${siteUrl}/shop/${collection}`,
     },
   }
 }
@@ -90,9 +98,9 @@ export default async function Page({ params }: { params: Promise<{ collection: s
   if (!VALID_COLLECTIONS.includes(collection as typeof VALID_COLLECTIONS[number])) {
     notFound()
   }
-  
+
   const meta = META[collection]
-  
+
   return (
     <>
       <script
