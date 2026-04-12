@@ -5,6 +5,8 @@ import { CartProvider } from "@/lib/cart-context"
 import { WishlistProvider } from "@/lib/wishlist-context"
 import { Toaster } from "@/components/ui/sonner"
 import { PageViewTracker } from "@/components/page-view-tracker"
+import { ThemeProvider } from "@/components/theme-provider"
+import { DynamicThemeColors } from "@/components/dynamic-theme-colors"
 import { SITE_SEO } from "@/lib/seo-data"
 import "./globals.css"
 
@@ -122,7 +124,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
+    <html lang="en" className={`${inter.variable} ${playfair.variable}`} suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.jpg" type="image/jpeg" />
         <link rel="icon" href="/logo-kf.png" type="image/png" sizes="512x512" />
@@ -299,9 +301,12 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased">
-        <WishlistProvider><CartProvider>{children}</CartProvider></WishlistProvider>
-        <PageViewTracker />
-        <Toaster position="top-right" richColors closeButton />
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <DynamicThemeColors />
+          <WishlistProvider><CartProvider>{children}</CartProvider></WishlistProvider>
+          <PageViewTracker />
+          <Toaster position="top-right" richColors closeButton />
+        </ThemeProvider>
       </body>
     </html>
   )
