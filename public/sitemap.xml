@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+            http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+
+<url>
+  <loc>https://classycollections.store/</loc>
+  <lastmod>2026-02-13T08:23:37+00:00</lastmod>
+  <priority>1.00</priority>
+</url>
+<url>
+  <loc>https://classycollections.store/wishlist</loc>
+  <lastmod>2026-02-13T08:23:37+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://classycollections.store/shop</loc>
+  <lastmod>2026-02-13T08:23:37+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://classycollections.store/shop/men</loc>
+  <lastmod>2026-02-13T08:23:37+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://classycollections.store/shop/women</loc>
+  <lastmod>2026-02-13T08:23:37+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://classycollections.store/shop?category=women-ankara-dresses</loc>
+  <lastmod>2026-02-13T08:23:37+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://classycollections.store/shop?filter=new</loc>
+  <lastmod>2026-02-13T08:23:37+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://classycollections.store/shop?filter=offers</loc>
+  <lastmod>2026-02-13T08:23:37+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://classycollections.store/delivery</loc>
+  <lastmod>2026-02-13T08:23:37+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://classycollections.store/shop?category=ankara-suits</loc>
+  <lastmod>2026-02-13T08:23:37+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://classycollections.store/shop?category=ankara-dresses</loc>
+  <lastmod>2026-02-13T08:23:37+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://classycollections.store/shop?category=ankara-kimonos</loc>
+  <lastmod>2026-02-13T08:23:37+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+
+</urlset>

@@ -1,0 +1,16 @@
+{
+  "name": "Classy Collections",
+  "short_name": "Classy",
+  "description": "Curated Ankara collection. Elegant African fashion for every occasion.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    {
+      "src": "/logo-kf.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
