@@ -295,6 +295,22 @@ SELECT
   true, false
 FROM categories WHERE slug = 'tops';
 
+-- Top 19: Hot Pink Sleeveless Button Blouse
+INSERT INTO products (
+  id, name, slug, description, price, original_price,
+  category_id, is_new, is_on_offer, offer_percentage,
+  in_stock, featured
+)
+SELECT
+  gen_random_uuid(),
+  'Hot Pink Sleeveless Button Blouse',
+  'hot-pink-sleeveless-button-blouse',
+  'Vibrant hot pink sleeveless blouse with classic collar and button-down front. Chest pocket details and a tailored fit for a polished summer look.',
+  570, 700,
+  id, true, true, 19,
+  true, true
+FROM categories WHERE slug = 'tops';
+
 -- =============================================================
 -- PRODUCT IMAGES
 -- =============================================================
@@ -414,6 +430,12 @@ SELECT gen_random_uuid(), p.id,
   'Coral Cap Sleeve Tee - Front', 0, true
 FROM products p WHERE p.slug = 'coral-cap-sleeve-tee';
 
+INSERT INTO product_images (id, product_id, image_url, alt_text, sort_order, is_primary)
+SELECT gen_random_uuid(), p.id,
+  '/images/products/hot-pink-sleeveless-button-blouse-1.jpg',
+  'Hot Pink Sleeveless Button Blouse - Front', 0, true
+FROM products p WHERE p.slug = 'hot-pink-sleeveless-button-blouse';
+
 -- =============================================================
 -- PRODUCT VARIATIONS (Sizes)
 -- =============================================================
@@ -489,6 +511,10 @@ FROM products p WHERE p.slug = 'pink-aztec-boho-blouse';
 INSERT INTO product_variations (id, product_id, type, options)
 SELECT gen_random_uuid(), p.id, 'Size', ARRAY['S', 'M', 'L', 'XL']
 FROM products p WHERE p.slug = 'coral-cap-sleeve-tee';
+
+INSERT INTO product_variations (id, product_id, type, options)
+SELECT gen_random_uuid(), p.id, 'Size', ARRAY['S', 'M', 'L', 'XL']
+FROM products p WHERE p.slug = 'hot-pink-sleeveless-button-blouse';
 
 -- =============================================================
 -- PRODUCT TAGS
@@ -583,3 +609,8 @@ INSERT INTO product_tags (product_id, tag_id)
 SELECT p.id, t.id FROM products p, tags t
 WHERE p.slug = 'coral-cap-sleeve-tee'
   AND t.slug IN ('thrift', 'new-arrival', 'in-stock', 'on-offer', 'casual');
+
+INSERT INTO product_tags (product_id, tag_id)
+SELECT p.id, t.id FROM products p, tags t
+WHERE p.slug = 'hot-pink-sleeveless-button-blouse'
+  AND t.slug IN ('thrift', 'new-arrival', 'in-stock', 'on-offer', 'statement-piece');
