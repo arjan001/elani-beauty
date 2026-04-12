@@ -16,6 +16,7 @@ import {
   Copy,
   Link2,
   AlertCircle,
+  Wallet,
 } from "lucide-react"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
@@ -43,6 +44,21 @@ interface PaymentLink {
   status: string
   url: string
   createdAt: string
+}
+
+interface CardPaymentOrder {
+  id: string
+  order_no: string
+  customer_name: string
+  customer_phone: string
+  customer_email?: string
+  subtotal: number
+  delivery_fee: number
+  total: number
+  status: string
+  payment_method: string
+  order_notes?: string
+  created_at: string
 }
 
 function formatPrice(amount: number): string {
@@ -265,7 +281,7 @@ function CreatePaymentLinkForm() {
 }
 
 export function AdminPayments() {
-  const [activeTab, setActiveTab] = useState<"transactions" | "stk-push" | "payment-links">("transactions")
+  const [activeTab, setActiveTab] = useState<"transactions" | "stk-push" | "payment-links" | "card-payments">("transactions")
   const { data: transactions, isLoading: txLoading } = useSWR<Transaction[]>(
     "/api/admin/payments?action=transactions",
     fetcher,
@@ -275,6 +291,11 @@ export function AdminPayments() {
     "/api/admin/payments?action=payment-links",
     fetcher
   )
+  const { data: cardPayments, isLoading: cpLoading } = useSWR<CardPaymentOrder[]>(
+    "/api/admin/payments?action=card-payments",
+    fetcher,
+    { refreshInterval: 15000 }
+  )
 
   const isConfigured = !(
     (Array.isArray(transactions) === false && (transactions as Record<string, string>)?.error?.includes("not configured")) ||
@@ -283,12 +304,15 @@ export function AdminPayments() {
 
   const txList = Array.isArray(transactions) ? transactions : []
   const plList = Array.isArray(paymentLinks) ? paymentLinks : []
+  const cpList = Array.isArray(cardPayments) ? cardPayments : []
 
   const successCount = txList.filter((t) => t.status === "success" || t.status === "completed").length
   const pendingCount = txList.filter((t) => t.status === "pending").length
   const totalRevenue = txList
     .filter((t) => t.status === "success" || t.status === "completed")
     .reduce((sum, t) => sum + (t.amount || 0), 0)
+  const cardPaymentCount = cpList.length
+  const cardPaymentTotal = cpList.reduce((sum, o) => sum + (o.total || 0), 0)
 
   return (
     <AdminShell title="Payments">
@@ -298,7 +322,7 @@ export function AdminPayments() {
           <div>
             <h1 className="text-2xl font-serif font-bold">Payments</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Manage M-Pesa payments via Lipana — send STK push requests, create payment links, and track transactions.
+              Manage M-Pesa payments via Lipana, view card payment orders, send STK push requests, create payment links, and track transactions.
             </p>
           </div>
           <button
@@ -306,6 +330,7 @@ export function AdminPayments() {
             onClick={() => {
               mutate("/api/admin/payments?action=transactions")
               mutate("/api/admin/payments?action=payment-links")
+              mutate("/api/admin/payments?action=card-payments")
               toast.success("Refreshed")
             }}
             className="flex items-center gap-2 px-4 py-2 border border-border rounded-md text-sm hover:bg-secondary transition-colors self-start"
@@ -333,18 +358,23 @@ export function AdminPayments() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div className="p-4 rounded-md border border-border">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Total Revenue</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">M-Pesa Revenue</p>
             <p className="text-2xl font-bold mt-1">{formatPrice(totalRevenue)}</p>
           </div>
           <div className="p-4 rounded-md border border-border">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Successful Payments</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Successful M-Pesa</p>
             <p className="text-2xl font-bold mt-1 text-emerald-600">{successCount}</p>
           </div>
           <div className="p-4 rounded-md border border-border">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Pending</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Pending M-Pesa</p>
             <p className="text-2xl font-bold mt-1 text-yellow-600">{pendingCount}</p>
+          </div>
+          <div className="p-4 rounded-md border border-border">
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Card Payments</p>
+            <p className="text-2xl font-bold mt-1 text-blue-600">{cardPaymentCount}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{formatPrice(cardPaymentTotal)} total</p>
           </div>
         </div>
 
@@ -352,7 +382,8 @@ export function AdminPayments() {
         <div className="border-b border-border">
           <div className="flex gap-6">
             {[
-              { key: "transactions" as const, label: "Transactions", icon: CreditCard },
+              { key: "transactions" as const, label: "M-Pesa Transactions", icon: CreditCard },
+              { key: "card-payments" as const, label: "Card Payments", icon: Wallet },
               { key: "stk-push" as const, label: "STK Push", icon: Send },
               { key: "payment-links" as const, label: "Payment Links", icon: Link2 },
             ].map((tab) => (
@@ -406,6 +437,57 @@ export function AdminPayments() {
                         <td className="py-3"><StatusBadge status={tx.status} /></td>
                         <td className="py-3 text-muted-foreground text-xs">{tx.timestamp ? formatDate(tx.timestamp) : "—"}</td>
                         <td className="py-3 text-xs">{tx.paymentLink?.title || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Card Payments Tab */}
+        {activeTab === "card-payments" && (
+          <div>
+            {cpLoading ? (
+              <div className="text-center py-12 text-muted-foreground text-sm">Loading card payments...</div>
+            ) : cpList.length === 0 ? (
+              <div className="text-center py-12">
+                <Wallet className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
+                <p className="text-sm text-muted-foreground">No card payment orders yet</p>
+                <p className="text-xs text-muted-foreground mt-1">Card payment orders from checkout will appear here.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-left">
+                      <th className="pb-3 font-medium text-muted-foreground">Order No</th>
+                      <th className="pb-3 font-medium text-muted-foreground">Customer</th>
+                      <th className="pb-3 font-medium text-muted-foreground">Phone</th>
+                      <th className="pb-3 font-medium text-muted-foreground">Amount</th>
+                      <th className="pb-3 font-medium text-muted-foreground">Status</th>
+                      <th className="pb-3 font-medium text-muted-foreground">Date</th>
+                      <th className="pb-3 font-medium text-muted-foreground">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cpList.map((order) => (
+                      <tr key={order.id} className="border-b border-border/50 hover:bg-secondary/30 transition-colors">
+                        <td className="py-3 font-mono text-xs font-medium">{order.order_no}</td>
+                        <td className="py-3">
+                          <div>
+                            <p className="text-sm">{order.customer_name}</p>
+                            {order.customer_email && (
+                              <p className="text-xs text-muted-foreground">{order.customer_email}</p>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 text-sm">{order.customer_phone}</td>
+                        <td className="py-3 font-medium">{formatPrice(order.total)}</td>
+                        <td className="py-3"><StatusBadge status={order.status} /></td>
+                        <td className="py-3 text-muted-foreground text-xs">{formatDate(order.created_at)}</td>
+                        <td className="py-3 text-xs text-muted-foreground max-w-[200px] truncate">{order.order_notes || "—"}</td>
                       </tr>
                     ))}
                   </tbody>

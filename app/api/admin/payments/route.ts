@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAuth, rateLimit, rateLimitResponse } from "@/lib/security"
+import { createClient } from "@/lib/supabase/server"
 
 const LIPANA_API_BASE = "https://api.lipana.dev/v1"
 
@@ -7,20 +8,42 @@ function getLipanaKey(): string | null {
   return process.env.LIPANA_SECRET_KEY || null
 }
 
-// GET: Fetch transactions from Lipana
+// GET: Fetch transactions from Lipana or card payment orders
 export async function GET(request: NextRequest) {
   const rl = rateLimit(request, { limit: 30, windowSeconds: 60 })
   if (!rl.success) return rateLimitResponse()
   const auth = await requireAuth()
   if (!auth.authenticated) return auth.response!
 
+  const { searchParams } = new URL(request.url)
+  const action = searchParams.get("action") || "transactions"
+
+  // Card payments are fetched from the orders table, not Lipana
+  if (action === "card-payments") {
+    try {
+      const supabase = await createClient()
+      const { data, error } = await supabase
+        .from("orders")
+        .select("id, order_no, customer_name, customer_phone, customer_email, subtotal, delivery_fee, total, status, payment_method, order_notes, created_at")
+        .eq("payment_method", "card")
+        .order("created_at", { ascending: false })
+        .limit(100)
+
+      if (error) {
+        console.error("Supabase card payments error:", error)
+        return NextResponse.json({ error: "Failed to fetch card payments" }, { status: 500 })
+      }
+      return NextResponse.json(data || [])
+    } catch (error) {
+      console.error("Card payments error:", error)
+      return NextResponse.json({ error: "Failed to fetch card payments" }, { status: 500 })
+    }
+  }
+
   const apiKey = getLipanaKey()
   if (!apiKey) {
     return NextResponse.json({ error: "Lipana API key not configured. Add LIPANA_SECRET_KEY to environment variables." }, { status: 500 })
   }
-
-  const { searchParams } = new URL(request.url)
-  const action = searchParams.get("action") || "transactions"
 
   try {
     if (action === "transactions") {
