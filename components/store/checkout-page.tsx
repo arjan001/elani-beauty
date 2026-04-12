@@ -9,6 +9,7 @@ import { TopBar } from "./top-bar"
 import { Navbar } from "./navbar"
 import { Footer } from "./footer"
 import { MpesaPaymentModal } from "./mpesa-payment-modal"
+import { CardPaymentModal } from "./card-payment-modal"
 import { useCart } from "@/lib/cart-context"
 import { formatPrice } from "@/lib/format"
 import type { DeliveryLocation } from "@/lib/types"
@@ -26,6 +27,7 @@ export function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [orderResult, setOrderResult] = useState<{ orderNumber: string; paymentMethod?: string } | null>(null)
   const [showMpesa, setShowMpesa] = useState(false)
+  const [showCardPayment, setShowCardPayment] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -190,6 +192,76 @@ export function CheckoutPage() {
       setShowMpesa(false)
     }
   }
+
+
+  const handleCardPayment = () => {
+    if (!validateForm()) return
+    // Track abandoned checkout step
+    trackAbandonedCheckout("payment_card")
+    setShowCardPayment(true)
+  }
+
+  const handleCardPaymentComplete = async (status: "success" | "failed", last4: string) => {
+    // Card payment always shows declined in test mode
+    // The order is still saved so admin can see the attempt
+    try {
+      const payload = {
+        ...buildOrderPayload("website"),
+        paymentMethod: "card",
+        notes: formData.notes ? `${formData.notes}\n[Card payment attempted - ending ${last4}]` : `[Card payment attempted - ending ${last4}]`,
+      }
+      await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+    } catch {
+      // Silent - order attempt tracked
+    }
+  }
+
+  // Track abandoned checkouts
+  const trackAbandonedCheckout = (stepReached: string) => {
+    if (items.length === 0) return
+    const sid = typeof window !== "undefined" ? sessionStorage.getItem("kf_sid") : null
+    if (!sid) return
+    fetch("/api/track-abandoned", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionId: sid,
+        customerName: formData.name,
+        customerPhone: formData.phone,
+        customerEmail: formData.email,
+        items: items.map(i => ({ name: i.product.name, qty: i.quantity, price: i.product.price })),
+        subtotal: totalPrice,
+        stepReached,
+      }),
+    }).catch(() => {})
+  }
+
+  // Track checkout page visit as potential abandoned checkout
+  useEffect(() => {
+    if (items.length > 0) {
+      const timer = setTimeout(() => trackAbandonedCheckout("checkout_started"), 3000)
+      return () => clearTimeout(timer)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Mark as recovered when order completes
+  useEffect(() => {
+    if (orderResult) {
+      const sid = typeof window !== "undefined" ? sessionStorage.getItem("kf_sid") : null
+      if (sid) {
+        fetch("/api/track-abandoned", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: sid }),
+        }).catch(() => {})
+      }
+    }
+  }, [orderResult])
 
 
   // Modern order success screen
@@ -541,6 +613,19 @@ export function CheckoutPage() {
                     Pay with M-PESA
                   </Button>
 
+                  {/* Card Payment */}
+                  <Button
+                    onClick={handleCardPayment}
+                    disabled={isSubmitting}
+                    className="w-full h-12 text-sm font-semibold disabled:opacity-40 bg-[#1a1f36] text-white hover:bg-[#2d3250]"
+                  >
+                    <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+                      <line x1="1" y1="10" x2="23" y2="10" />
+                    </svg>
+                    Pay with Card
+                  </Button>
+
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">
                       <div className="w-full border-t border-border" />
@@ -579,6 +664,13 @@ export function CheckoutPage() {
         onClose={() => setShowMpesa(false)}
         total={freeShipping ? totalPrice : grandTotal}
         onPaymentConfirmed={handleMpesaConfirmed}
+      />
+
+      <CardPaymentModal
+        isOpen={showCardPayment}
+        onClose={() => setShowCardPayment(false)}
+        total={freeShipping ? totalPrice : grandTotal}
+        onPaymentComplete={handleCardPaymentComplete}
       />
     </div>
   )
