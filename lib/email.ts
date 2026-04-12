@@ -158,7 +158,7 @@ function buildOrderEmailHtml(data: OrderEmailData): string {
         <!-- Track Order Button -->
         <tr>
           <td style="padding:0 32px 32px;text-align:center;">
-            <a href="https://classycollections.com/track-order/${data.orderNumber}" 
+            <a href="https://elanibeautyhub.com/track-order/${data.orderNumber}" 
                style="display:inline-block;background-color:#1a1a1a;color:#ffffff;padding:14px 32px;font-size:14px;font-weight:600;text-decoration:none;border-radius:4px;letter-spacing:0.5px;">
               Track Your Order
             </a>

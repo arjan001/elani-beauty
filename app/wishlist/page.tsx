@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { WishlistPage } from "@/components/store/wishlist-page"
-import { PAGE_SEO, SITE_SEO } from "@/lib/seo-data"
+import { PAGE_SEO, SITE_SEO, PAGE_KEYWORDS } from "@/lib/seo-data"
 
 const siteUrl = SITE_SEO.siteUrl
 
@@ -8,11 +8,7 @@ export const metadata: Metadata = {
   title: PAGE_SEO.wishlist.title,
   description: PAGE_SEO.wishlist.description,
   alternates: { canonical: `${siteUrl}/wishlist` },
-  keywords: [
-    "Elani Beauty Hub wishlist", "saved fashion pieces", "thrift wishlist Kenya",
-    "fashion wishlist Kenya", "women fashion collection", "Elani Beauty Hub saved items",
-    "buy later fashion", "curated thrift picks", "save thrift items Kenya",
-  ],
+  keywords: PAGE_KEYWORDS.wishlist,
   authors: [{ name: SITE_SEO.siteName, url: siteUrl }],
   creator: SITE_SEO.siteName,
   publisher: SITE_SEO.siteName,

@@ -342,7 +342,7 @@ function SeoManager() {
           </h4>
           <div className="bg-secondary/30 rounded-sm p-4 space-y-1">
             <p className="text-sm text-blue-600 font-medium truncate">{editing.meta_title || editing.page_title || "Page Title"}</p>
-            <p className="text-xs text-green-700">{"https://classycollections.com"}{editing.page_path || "/"}</p>
+            <p className="text-xs text-green-700">{"https://elanibeautyhub.com"}{editing.page_path || "/"}</p>
             <p className="text-xs text-muted-foreground line-clamp-2">{editing.meta_description || "No description set..."}</p>
           </div>
         </div>
