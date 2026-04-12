@@ -9,12 +9,6 @@ import useSWR from "swr"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
-const CAROUSEL_IMAGES = [
-  "/banners/bodysuit-black-vneck.jpg",
-  "/banners/dress-black-lace-spaghetti.jpg",
-  "/banners/dress-halter-leopard.jpg",
-]
-
 const FALLBACK_BANNERS: HeroBanner[] = [
   {
     id: "women-bodysuits",
@@ -48,35 +42,36 @@ const FALLBACK_BANNERS: HeroBanner[] = [
   },
 ]
 
-function HeroCarousel({ banner }: { banner: HeroBanner }) {
+function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
   const [currentSlide, setCurrentSlide] = useState(0)
+  const mainBanner = banners[0]
+  const carouselImages = banners.map((b) => b.bannerImage)
 
   const nextSlide = useCallback(() => {
-    setCurrentSlide((prev) => (prev + 1) % CAROUSEL_IMAGES.length)
-  }, [])
+    setCurrentSlide((prev) => (prev + 1) % carouselImages.length)
+  }, [carouselImages.length])
 
   useEffect(() => {
+    if (carouselImages.length <= 1) return
     const interval = setInterval(nextSlide, 4000)
     return () => clearInterval(interval)
-  }, [nextSlide])
+  }, [nextSlide, carouselImages.length])
 
   return (
     <Link
-      href={banner.linkUrl}
+      href={mainBanner.linkUrl}
       className="lg:col-span-8 relative overflow-hidden rounded-sm min-h-[400px] lg:min-h-[520px] flex items-end group"
     >
       <div className="absolute inset-0 z-0">
-        {CAROUSEL_IMAGES.map((src, i) => (
+        {carouselImages.map((src, i) => (
           <div
             key={src}
             className="absolute inset-0 transition-opacity duration-700"
             style={{ opacity: i === currentSlide ? 1 : 0 }}
           >
-            <Image
+            <BannerImage
               src={src}
-              alt={`${banner.title} - carousel slide ${i + 1}`}
-              fill
-              className="object-cover group-hover:scale-105 transition-transform duration-700"
+              alt={`${mainBanner.title} - carousel slide ${i + 1}`}
               priority={i === 0}
             />
           </div>
@@ -86,13 +81,13 @@ function HeroCarousel({ banner }: { banner: HeroBanner }) {
       <div className="relative z-10 p-8 lg:p-12 w-full">
         <p className="text-white/80 text-xs tracking-[0.3em] uppercase mb-2">Women&apos;s Fashion</p>
         <h1 className="text-white text-4xl lg:text-5xl font-serif font-bold leading-tight text-balance">
-          {banner.title}
+          {mainBanner.title}
         </h1>
         <p className="text-white/70 text-sm mt-3 leading-relaxed max-w-md">
-          {banner.subtitle}
+          {mainBanner.subtitle}
         </p>
         <span className="inline-flex items-center gap-2 mt-5 bg-white text-black px-7 py-3 text-sm font-medium hover:bg-white/90 transition-colors">
-          {banner.buttonText}
+          {mainBanner.buttonText}
           <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
         </span>
       </div>
@@ -143,16 +138,9 @@ export function Hero() {
   const items: HeroBanner[] = (() => {
     if (!banners || banners.length === 0) return FALLBACK_BANNERS
 
-    // Ensure each banner has a valid image, fallback to known images
-    const validImages = [
-      "/banners/bodysuit-black-vneck.jpg",
-      "/banners/dress-beige-wrap.jpg",
-      "/banners/top-floral-garden.jpg",
-    ]
-
-    return banners.slice(0, 3).map((b, i) => ({
+    return banners.slice(0, 3).map((b) => ({
       ...b,
-      bannerImage: b.bannerImage && b.bannerImage.startsWith("/") ? b.bannerImage : validImages[i % validImages.length],
+      bannerImage: b.bannerImage || "/banners/bodysuit-black-vneck.jpg",
       linkUrl: b.linkUrl || "/shop",
       buttonText: b.buttonText || "Shop Now",
     }))
@@ -163,15 +151,14 @@ export function Hero() {
     items.push(FALLBACK_BANNERS[items.length])
   }
 
-  const mainBanner = items[0]
   const sideBanners = items.slice(1, 3)
 
   return (
     <section className="bg-secondary">
       <div className="mx-auto max-w-7xl px-4 py-6 lg:py-0">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 items-stretch">
-          {/* Main Banner with Carousel */}
-          <HeroCarousel banner={mainBanner} />
+          {/* Main Banner with Carousel - uses images from all banners */}
+          <HeroCarousel banners={items} />
 
           {/* Side Banners */}
           <div className="lg:col-span-4 flex flex-col gap-4 lg:gap-6">
