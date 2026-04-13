@@ -7,7 +7,8 @@ import {
   TrendingUp, TrendingDown, Users, ShoppingBag, Eye, DollarSign,
   ArrowUpRight, ArrowDownRight, ChevronLeft, ChevronRight, Globe,
   Monitor, Smartphone, Tablet, Activity, MousePointerClick, Clock,
-  BarChart3, Bot, ShieldCheck, ScrollText, ShoppingCart, AlertTriangle
+  BarChart3, Bot, ShieldCheck, ScrollText, ShoppingCart, AlertTriangle,
+  Search, Share2, Mail, Link2, UserPlus, UserCheck, Megaphone, Languages
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -56,6 +57,12 @@ interface AnalyticsData {
     byStep: Record<string, number>
     recent: { id: string; customerName: string; items: unknown[]; subtotal: number; stepReached: string; recovered: boolean; createdAt: string }[]
   }
+  // Enhanced real tracking data
+  trafficChannels: { channel: string; count: number; percentage: number }[]
+  newVsReturning: { new: number; returning: number; newPercentage: number; returningPercentage: number }
+  utmCampaigns: { campaign: string; views: number; source: string; medium: string }[]
+  utmSources: { source: string; count: number }[]
+  languages: { language: string; count: number; percentage: number }[]
 }
 
 export function AdminAnalytics() {
@@ -242,10 +249,75 @@ export function AdminAnalytics() {
               </div>
             </div>
 
-            {/* Referrers */}
+            {/* Traffic Channels (Google Analytics-style) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="border border-border rounded-sm">
+                <div className="px-5 py-3 border-b border-border">
+                  <h2 className="text-sm font-semibold flex items-center gap-2"><BarChart3 className="h-3.5 w-3.5" /> Traffic Channels</h2>
+                </div>
+                <div className="p-5 space-y-3">
+                  {(analytics?.trafficChannels || []).length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-3">No channel data yet</p>
+                  ) : (analytics?.trafficChannels || []).map((ch) => {
+                    const ChannelIcon = ch.channel === "Organic Search" ? Search
+                      : ch.channel === "Social" ? Share2
+                      : ch.channel === "Email" ? Mail
+                      : ch.channel === "Paid Search" ? Megaphone
+                      : ch.channel === "Direct" ? Link2
+                      : Globe
+                    return (
+                      <div key={ch.channel}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm flex items-center gap-2"><ChannelIcon className="h-3.5 w-3.5 text-muted-foreground" /> {ch.channel}</span>
+                          <span className="text-xs text-muted-foreground">{ch.percentage}% ({ch.count})</span>
+                        </div>
+                        <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                          <div className="h-full bg-foreground rounded-full" style={{ width: `${ch.percentage}%` }} />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* New vs Returning Visitors */}
+              <div className="border border-border rounded-sm">
+                <div className="px-5 py-3 border-b border-border">
+                  <h2 className="text-sm font-semibold flex items-center gap-2"><Users className="h-3.5 w-3.5" /> New vs Returning Visitors</h2>
+                </div>
+                <div className="p-5">
+                  <div className="h-8 bg-secondary rounded-full overflow-hidden flex mb-4">
+                    <div className="bg-foreground/80 h-full transition-all flex items-center justify-center" style={{ width: `${analytics?.newVsReturning?.newPercentage || 100}%` }}>
+                      {(analytics?.newVsReturning?.newPercentage || 0) > 15 && (
+                        <span className="text-[10px] text-background font-medium">{analytics?.newVsReturning?.newPercentage}% New</span>
+                      )}
+                    </div>
+                    <div className="bg-foreground/30 h-full transition-all flex items-center justify-center" style={{ width: `${analytics?.newVsReturning?.returningPercentage || 0}%` }}>
+                      {(analytics?.newVsReturning?.returningPercentage || 0) > 15 && (
+                        <span className="text-[10px] text-foreground font-medium">{analytics?.newVsReturning?.returningPercentage}% Returning</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-3 border border-border rounded-sm">
+                      <UserPlus className="h-4 w-4 mx-auto text-muted-foreground mb-1" />
+                      <p className="text-lg font-bold">{analytics?.newVsReturning?.new || 0}</p>
+                      <p className="text-xs text-muted-foreground">New Visitors</p>
+                    </div>
+                    <div className="text-center p-3 border border-border rounded-sm">
+                      <UserCheck className="h-4 w-4 mx-auto text-muted-foreground mb-1" />
+                      <p className="text-lg font-bold">{analytics?.newVsReturning?.returning || 0}</p>
+                      <p className="text-xs text-muted-foreground">Returning Visitors</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Referrer Details (raw sources) */}
             <div className="border border-border rounded-sm">
               <div className="px-5 py-3 border-b border-border">
-                <h2 className="text-sm font-semibold flex items-center gap-2"><Globe className="h-3.5 w-3.5" /> Traffic Sources</h2>
+                <h2 className="text-sm font-semibold flex items-center gap-2"><Globe className="h-3.5 w-3.5" /> Traffic Sources (Referrers)</h2>
               </div>
               <div className="divide-y divide-border">
                 {(analytics?.referrers || []).length === 0 ? (
@@ -262,7 +334,30 @@ export function AdminAnalytics() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* UTM Campaigns */}
+            {(analytics?.utmCampaigns || []).length > 0 && (
+              <div className="border border-border rounded-sm">
+                <div className="px-5 py-3 border-b border-border">
+                  <h2 className="text-sm font-semibold flex items-center gap-2"><Megaphone className="h-3.5 w-3.5" /> Active Campaigns (UTM)</h2>
+                </div>
+                <div className="divide-y divide-border">
+                  {analytics!.utmCampaigns.map((c, i) => (
+                    <div key={c.campaign} className="flex items-center justify-between px-5 py-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-muted-foreground w-5">{i + 1}.</span>
+                        <div>
+                          <p className="text-sm font-medium">{c.campaign}</p>
+                          <p className="text-xs text-muted-foreground">{c.source}{c.medium ? ` / ${c.medium}` : ""}</p>
+                        </div>
+                      </div>
+                      <span className="text-sm font-medium">{c.views} views</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
               {/* Devices */}
               <div className="border border-border rounded-sm">
                 <div className="px-5 py-3 border-b border-border">
@@ -326,6 +421,28 @@ export function AdminAnalytics() {
                       </div>
                       <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
                         <div className="h-full bg-foreground rounded-full" style={{ width: `${c.percentage}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Languages */}
+              <div className="border border-border rounded-sm">
+                <div className="px-5 py-3 border-b border-border">
+                  <h2 className="text-sm font-semibold flex items-center gap-2"><Languages className="h-3.5 w-3.5" /> Languages</h2>
+                </div>
+                <div className="p-5 space-y-3">
+                  {(analytics?.languages || []).length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-3">No data yet</p>
+                  ) : (analytics?.languages || []).map((l) => (
+                    <div key={l.language}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm uppercase">{l.language}</span>
+                        <span className="text-xs text-muted-foreground">{l.percentage}% ({l.count})</span>
+                      </div>
+                      <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                        <div className="h-full bg-foreground rounded-full" style={{ width: `${l.percentage}%` }} />
                       </div>
                     </div>
                   ))}

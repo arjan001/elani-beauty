@@ -5,20 +5,24 @@ export async function GET() {
   try {
     const supabase = createAdminClient()
 
-    // Count unique page views in the last 5 minutes as "active users"
+    // Count unique sessions (human only) in the last 5 minutes as "active users"
     const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
 
-    const { count, error } = await supabase
+    const { data: recentViews, error } = await supabase
       .from("page_views")
-      .select("id", { count: "exact", head: true })
+      .select("session_id")
       .gte("created_at", fiveMinAgo)
+      .eq("is_bot", false)
 
     if (error) {
       console.error("[v0] Realtime analytics error:", error)
     }
 
+    // Count unique sessions, not raw page views
+    const uniqueSessions = new Set((recentViews || []).map(v => v.session_id).filter(Boolean)).size
+
     return NextResponse.json({
-      activeUsers: count || 0,
+      activeUsers: uniqueSessions,
       timestamp: new Date().toISOString(),
     })
   } catch {

@@ -13,6 +13,30 @@ function getSessionId() {
   return sid
 }
 
+/** Persistent visitor ID in localStorage — survives across sessions for new/returning tracking */
+function getVisitorId(): string {
+  if (typeof window === "undefined") return ""
+  let vid = localStorage.getItem("kf_vid")
+  if (!vid) {
+    vid = crypto.randomUUID()
+    localStorage.setItem("kf_vid", vid)
+  }
+  return vid
+}
+
+/** Check if this is a returning visitor (has visited before this session) */
+function isReturningVisitor(): boolean {
+  if (typeof window === "undefined") return false
+  const firstSeen = localStorage.getItem("kf_first_seen")
+  if (!firstSeen) {
+    localStorage.setItem("kf_first_seen", new Date().toISOString())
+    return false
+  }
+  // If the first seen date is from a different session (> 30min ago), they're returning
+  const diff = Date.now() - new Date(firstSeen).getTime()
+  return diff > 30 * 60 * 1000
+}
+
 function detectBot(): boolean {
   if (typeof window === "undefined") return false
   const ua = navigator.userAgent
@@ -37,6 +61,22 @@ function getScrollDepth(): number {
   const winHeight = window.innerHeight
   if (docHeight <= winHeight) return 100
   return Math.min(100, Math.round((scrollTop / (docHeight - winHeight)) * 100))
+}
+
+/** Extract UTM parameters from current URL */
+function getUtmParams(): Record<string, string> {
+  if (typeof window === "undefined") return {}
+  const params = new URLSearchParams(window.location.search)
+  const utm: Record<string, string> = {}
+  const utmKeys = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"]
+  for (const key of utmKeys) {
+    const val = params.get(key)
+    if (val) utm[key] = val.slice(0, 200)
+  }
+  // Also capture gclid (Google Ads), fbclid (Facebook), etc.
+  if (params.get("gclid")) utm.gclid = "true"
+  if (params.get("fbclid")) utm.fbclid = "true"
+  return utm
 }
 
 export function PageViewTracker() {
@@ -102,6 +142,10 @@ export function PageViewTracker() {
     maxScrollDepth.current = 0
     isBot.current = detectBot()
 
+    const utmParams = getUtmParams()
+    const returning = isReturningVisitor()
+    const visitorId = getVisitorId()
+
     const track = async () => {
       try {
         await fetch("/api/track-view", {
@@ -111,11 +155,33 @@ export function PageViewTracker() {
             path: pathname,
             referrer: document.referrer || "",
             sessionId: getSessionId(),
+            visitorId,
             isBot: isBot.current,
+            isReturning: returning,
             screenWidth: window.innerWidth,
             screenHeight: window.innerHeight,
+            language: navigator.language || "",
+            utmSource: utmParams.utm_source || "",
+            utmMedium: utmParams.utm_medium || "",
+            utmCampaign: utmParams.utm_campaign || "",
           }),
         })
+
+        // Track UTM params as a separate event for detailed campaign analysis
+        if (Object.keys(utmParams).length > 0) {
+          fetch("/api/track-event", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              eventType: "utm_landing",
+              eventTarget: utmParams.utm_campaign || utmParams.utm_source || "unknown",
+              eventData: { ...utmParams, landing_page: pathname, referrer: document.referrer },
+              pagePath: pathname,
+              sessionId: getSessionId(),
+              isBot: isBot.current,
+            }),
+          }).catch(() => {})
+        }
       } catch {
         // Silently fail
       }

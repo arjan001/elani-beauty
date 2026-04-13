@@ -14,12 +14,25 @@ export async function GET(request: NextRequest) {
   prevSince.setDate(prevSince.getDate() - days * 2)
   const prevSinceISO = prevSince.toISOString()
 
-  // Current period views
-  const { data: currentViews } = await supabase
+  // Current period views (including new enhanced columns if available)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let currentViews: any[] | null = null
+  const { data: viewsData, error: viewsError } = await supabase
     .from("page_views")
-    .select("id, page_path, referrer, country, device_type, browser, created_at, session_id, duration_seconds, is_bot, scroll_depth")
+    .select("id, page_path, referrer, country, device_type, browser, created_at, session_id, duration_seconds, is_bot, scroll_depth, visitor_id, is_returning, language, utm_source, utm_medium, utm_campaign")
     .gte("created_at", sinceISO)
     .order("created_at", { ascending: false })
+  currentViews = viewsData
+
+  // Fallback: if new columns don't exist yet (migration not run), query without them
+  if (viewsError && viewsError.message?.includes("column")) {
+    const fallback = await supabase
+      .from("page_views")
+      .select("id, page_path, referrer, country, device_type, browser, created_at, session_id, duration_seconds, is_bot, scroll_depth")
+      .gte("created_at", sinceISO)
+      .order("created_at", { ascending: false })
+    currentViews = fallback.data
+  }
 
   // Previous period views for comparison
   const { count: prevViewCount } = await supabase
@@ -221,6 +234,111 @@ export async function GET(request: NextRequest) {
     .sort((a, b) => b.count - a.count)
     .slice(0, 10)
 
+  // ===== ENHANCED ANALYTICS: Traffic Source Categorization =====
+  const searchEngines = ["google", "bing", "yahoo", "duckduckgo", "baidu", "yandex", "ecosia", "brave"]
+  const socialNetworks = ["facebook", "instagram", "tiktok", "twitter", "x.com", "linkedin", "pinterest", "reddit", "youtube", "snapchat", "whatsapp", "t.co"]
+  const emailProviders = ["mail", "email", "outlook", "gmail", "newsletter"]
+
+  function categorizeSource(referrer: string, utmMedium?: string, utmSource?: string): string {
+    // UTM medium takes highest priority (like Google Analytics)
+    if (utmMedium) {
+      const med = utmMedium.toLowerCase()
+      if (med === "cpc" || med === "ppc" || med === "paid" || med === "paidsearch") return "Paid Search"
+      if (med === "social" || med === "paid_social" || med === "paidsocial") return "Social"
+      if (med === "email" || med === "e-mail") return "Email"
+      if (med === "organic") return "Organic Search"
+      if (med === "referral") return "Referral"
+      if (med === "display" || med === "banner" || med === "cpm") return "Display"
+      if (med === "affiliate") return "Affiliate"
+    }
+    // UTM source as secondary signal
+    if (utmSource) {
+      const src = utmSource.toLowerCase()
+      if (searchEngines.some(se => src.includes(se))) return "Organic Search"
+      if (socialNetworks.some(sn => src.includes(sn))) return "Social"
+      if (emailProviders.some(ep => src.includes(ep))) return "Email"
+    }
+    // Referrer-based detection
+    if (!referrer) return "Direct"
+    try {
+      const host = new URL(referrer).hostname.toLowerCase()
+      if (searchEngines.some(se => host.includes(se))) return "Organic Search"
+      if (socialNetworks.some(sn => host.includes(sn))) return "Social"
+      if (emailProviders.some(ep => host.includes(ep))) return "Email"
+      return "Referral"
+    } catch {
+      return "Direct"
+    }
+  }
+
+  const sourceCategories: Record<string, number> = {}
+  humanViews.forEach(v => {
+    const cat = categorizeSource(v.referrer || "", v.utm_medium, v.utm_source)
+    sourceCategories[cat] = (sourceCategories[cat] || 0) + 1
+  })
+  const trafficChannels = Object.entries(sourceCategories)
+    .map(([channel, count]) => ({ channel, count, percentage: Math.round((count / Math.max(humanViewCount, 1)) * 100) }))
+    .sort((a, b) => b.count - a.count)
+
+  // ===== New vs Returning Visitors =====
+  // Count unique visitor IDs; if is_returning is set, use it; otherwise estimate from session data
+  const visitorMap: Record<string, boolean> = {}
+  humanViews.forEach(v => {
+    const vid = v.visitor_id || v.session_id
+    if (vid && visitorMap[vid] === undefined) {
+      visitorMap[vid] = v.is_returning === true
+    }
+  })
+  const totalUniqueVisitors = Object.keys(visitorMap).length || 1
+  const returningVisitors = Object.values(visitorMap).filter(r => r).length
+  const newVisitors = totalUniqueVisitors - returningVisitors
+  const newVsReturning = {
+    new: newVisitors,
+    returning: returningVisitors,
+    newPercentage: Math.round((newVisitors / totalUniqueVisitors) * 100),
+    returningPercentage: Math.round((returningVisitors / totalUniqueVisitors) * 100),
+  }
+
+  // ===== UTM Campaign Data =====
+  const campaignMap: Record<string, { views: number; source: string; medium: string }> = {}
+  humanViews.forEach(v => {
+    if (v.utm_campaign) {
+      if (!campaignMap[v.utm_campaign]) {
+        campaignMap[v.utm_campaign] = { views: 0, source: v.utm_source || "", medium: v.utm_medium || "" }
+      }
+      campaignMap[v.utm_campaign].views++
+    }
+  })
+  const utmCampaigns = Object.entries(campaignMap)
+    .map(([campaign, data]) => ({ campaign, views: data.views, source: data.source, medium: data.medium }))
+    .sort((a, b) => b.views - a.views)
+    .slice(0, 10)
+
+  // Also aggregate UTM events for richer campaign data
+  const utmEvents = allEvents.filter(e => e.event_type === "utm_landing" && !e.is_bot)
+  const utmSourceMap: Record<string, number> = {}
+  utmEvents.forEach(e => {
+    const src = (e.event_data as Record<string, string>)?.utm_source || "unknown"
+    utmSourceMap[src] = (utmSourceMap[src] || 0) + 1
+  })
+  const utmSources = Object.entries(utmSourceMap)
+    .map(([source, count]) => ({ source, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10)
+
+  // ===== Language Breakdown =====
+  const langMap: Record<string, number> = {}
+  humanViews.forEach(v => {
+    if (v.language) {
+      const lang = v.language.split("-")[0] // "en-US" -> "en"
+      langMap[lang] = (langMap[lang] || 0) + 1
+    }
+  })
+  const languages = Object.entries(langMap)
+    .map(([language, count]) => ({ language, count, percentage: Math.round((count / Math.max(humanViewCount, 1)) * 100) }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10)
+
   // Abandoned checkouts summary
   const totalAbandoned = abandoned.length
   const recoveredCount = abandoned.filter(a => a.recovered).length
@@ -286,5 +404,12 @@ export async function GET(request: NextRequest) {
         createdAt: a.created_at,
       })),
     },
+
+    // Enhanced analytics
+    trafficChannels,
+    newVsReturning,
+    utmCampaigns,
+    utmSources,
+    languages,
   })
 }
