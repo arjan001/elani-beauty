@@ -20,12 +20,12 @@ export function AdminSettings() {
   const [saved, setSaved] = useState(false)
 
   const [form, setForm] = useState({
-    storeName: "", storeTagline: "", storeEmail: "", storePhone: "", storeAddress: "",
+    storeName: "", storeEmail: "", storePhone: "",
     currency: "KSh", whatsappNumber: "",
     metaTitle: "", metaDescription: "", metaKeywords: "",
     logoUrl: "", faviconUrl: "",
     footerText: "",
-    socialInstagram: "", socialTiktok: "", socialTwitter: "", socialFacebook: "",
+    socialInstagram: "", socialTiktok: "", socialTwitter: "",
     freeShippingThreshold: 5000,
     enableWhatsappCheckout: true, enableNewsletter: true, maintenanceMode: false,
   })
@@ -34,25 +34,22 @@ export function AdminSettings() {
     if (settings && !settings.error) {
       setForm({
         storeName: settings.store_name || "",
-        storeTagline: settings.store_tagline || "",
         storeEmail: settings.store_email || "",
         storePhone: settings.store_phone || "",
-        storeAddress: settings.store_address || "",
-        currency: settings.currency || "KSh",
+        currency: settings.currency_symbol || "KSh",
         whatsappNumber: settings.whatsapp_number || "",
-        metaTitle: settings.meta_title || "",
-        metaDescription: settings.meta_description || "",
+        metaTitle: settings.site_title || "",
+        metaDescription: settings.site_description || "",
         metaKeywords: settings.meta_keywords || "",
-        logoUrl: settings.logo_url || "",
+        logoUrl: settings.logo_image_url || "",
         faviconUrl: settings.favicon_url || "",
-        footerText: settings.footer_about || "",
-        socialInstagram: settings.instagram_url || "",
-        socialTiktok: settings.tiktok_url || "",
-        socialTwitter: settings.twitter_url || "",
-        socialFacebook: settings.facebook_url || "",
-        freeShippingThreshold: 5000,
-        enableWhatsappCheckout: true,
-        enableNewsletter: settings.show_newsletter_popup ?? true,
+        footerText: settings.footer_description || "",
+        socialInstagram: settings.footer_instagram || "",
+        socialTiktok: settings.footer_tiktok || "",
+        socialTwitter: settings.footer_twitter || "",
+        freeShippingThreshold: settings.free_shipping_threshold ?? 5000,
+        enableWhatsappCheckout: settings.enable_whatsapp_checkout ?? true,
+        enableNewsletter: settings.show_newsletter ?? true,
         maintenanceMode: settings.maintenance_mode ?? false,
       })
     }
@@ -98,13 +95,11 @@ export function AdminSettings() {
                 <h3 className="text-sm font-semibold uppercase tracking-wider">Store Information</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div><Label className="text-sm font-medium mb-1.5 block">Store Name</Label><Input value={form.storeName} onChange={(e) => setForm({ ...form, storeName: e.target.value })} /></div>
-                  <div><Label className="text-sm font-medium mb-1.5 block">Tagline</Label><Input value={form.storeTagline} onChange={(e) => setForm({ ...form, storeTagline: e.target.value })} /></div>
                   <div><Label className="text-sm font-medium mb-1.5 block">Store Email</Label><Input value={form.storeEmail} onChange={(e) => setForm({ ...form, storeEmail: e.target.value })} /></div>
                   <div><Label className="text-sm font-medium mb-1.5 block">Store Phone</Label><Input value={form.storePhone} onChange={(e) => setForm({ ...form, storePhone: e.target.value })} /></div>
                   <div><Label className="text-sm font-medium mb-1.5 block">WhatsApp Number</Label><Input value={form.whatsappNumber} onChange={(e) => setForm({ ...form, whatsappNumber: e.target.value })} placeholder="254..." /></div>
                   <div><Label className="text-sm font-medium mb-1.5 block">Currency Symbol</Label><Input value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} /></div>
                 </div>
-                <div><Label className="text-sm font-medium mb-1.5 block">Store Address</Label><Textarea value={form.storeAddress} onChange={(e) => setForm({ ...form, storeAddress: e.target.value })} rows={2} /></div>
               </div>
 
               <div className="border border-border rounded-sm p-6 space-y-5">
@@ -144,7 +139,6 @@ export function AdminSettings() {
                   <div><Label className="text-sm font-medium mb-1.5 block">Instagram URL</Label><Input value={form.socialInstagram} onChange={(e) => setForm({ ...form, socialInstagram: e.target.value })} placeholder="https://instagram.com/..." /></div>
                   <div><Label className="text-sm font-medium mb-1.5 block">TikTok URL</Label><Input value={form.socialTiktok} onChange={(e) => setForm({ ...form, socialTiktok: e.target.value })} placeholder="https://tiktok.com/..." /></div>
                   <div><Label className="text-sm font-medium mb-1.5 block">Twitter/X URL</Label><Input value={form.socialTwitter} onChange={(e) => setForm({ ...form, socialTwitter: e.target.value })} placeholder="https://x.com/..." /></div>
-                  <div><Label className="text-sm font-medium mb-1.5 block">Facebook URL</Label><Input value={form.socialFacebook} onChange={(e) => setForm({ ...form, socialFacebook: e.target.value })} placeholder="https://facebook.com/..." /></div>
                 </div>
               </div>
             </div>
