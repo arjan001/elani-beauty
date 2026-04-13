@@ -14,8 +14,14 @@ export async function POST(request: NextRequest) {
     const parser = new UAParser(userAgent)
     const browser = parser.getBrowser().name || "Unknown"
     const deviceType = parser.getDevice().type || "desktop"
-    const country = request.headers.get("x-vercel-ip-country") || ""
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || ""
+    // Netlify geo: parse x-nf-geo JSON header, fallback to x-country or Vercel header
+    let country = ""
+    const nfGeo = request.headers.get("x-nf-geo")
+    if (nfGeo) {
+      try { country = JSON.parse(nfGeo)?.country?.code || "" } catch { /* ignore */ }
+    }
+    if (!country) country = request.headers.get("x-country") || request.headers.get("x-vercel-ip-country") || ""
+    const ip = request.headers.get("x-nf-client-connection-ip") || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || ""
 
     // Bot detection from user agent
     const botPatterns = /bot|crawl|spider|scraper|curl|wget|python|java|go-http|headless|phantom|puppeteer|selenium|playwright/i

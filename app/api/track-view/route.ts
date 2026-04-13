@@ -20,11 +20,19 @@ export async function POST(request: NextRequest) {
     const parser = new UAParser(userAgent)
     const browser = parser.getBrowser().name || "Unknown"
     const deviceType = parser.getDevice().type || "desktop"
-    const country = request.headers.get("x-vercel-ip-country") || ""
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || ""
+    // Netlify geo: parse x-nf-geo JSON header, fallback to x-country or Vercel header
+    let country = ""
+    const nfGeo = request.headers.get("x-nf-geo")
+    if (nfGeo) {
+      try { country = JSON.parse(nfGeo)?.country?.code || "" } catch { /* ignore */ }
+    }
+    if (!country) country = request.headers.get("x-country") || request.headers.get("x-vercel-ip-country") || ""
+    const ip = request.headers.get("x-nf-client-connection-ip") || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || ""
 
     const supabase = createClient()
-    const { error } = await supabase.from("page_views").insert({
+
+    // Build insert payload — new columns (utm, visitor_id, etc.) added gracefully
+    const insertData: Record<string, unknown> = {
       page_path: sanitize(body.path || "/", 500),
       referrer: sanitize(body.referrer || "", 2000),
       user_agent: userAgent.slice(0, 500),
@@ -34,7 +42,34 @@ export async function POST(request: NextRequest) {
       session_id: sanitize(body.sessionId || "", 100),
       is_bot: isBot,
       ip_address: ip.slice(0, 45),
-    })
+    }
+
+    // Add enhanced tracking fields (requires migration 14_analytics_real_tracking.sql)
+    if (body.visitorId) insertData.visitor_id = sanitize(body.visitorId, 100)
+    if (body.isReturning !== undefined) insertData.is_returning = body.isReturning === true
+    if (body.language) insertData.language = sanitize(body.language, 20)
+    if (body.utmSource) insertData.utm_source = sanitize(body.utmSource, 200)
+    if (body.utmMedium) insertData.utm_medium = sanitize(body.utmMedium, 200)
+    if (body.utmCampaign) insertData.utm_campaign = sanitize(body.utmCampaign, 200)
+
+    let { error } = await supabase.from("page_views").insert(insertData)
+
+    // If insert fails due to unknown columns (migration not yet run), retry with base columns only
+    if (error && error.message?.includes("column")) {
+      const baseData = {
+        page_path: insertData.page_path,
+        referrer: insertData.referrer,
+        user_agent: insertData.user_agent,
+        country: insertData.country,
+        device_type: insertData.device_type,
+        browser: insertData.browser,
+        session_id: insertData.session_id,
+        is_bot: insertData.is_bot,
+        ip_address: insertData.ip_address,
+      }
+      const retry = await supabase.from("page_views").insert(baseData)
+      error = retry.error
+    }
 
     if (error) {
       console.error("Failed to track view:", error)
