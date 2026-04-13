@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { Save, Globe, Palette, FileText, Search, Plus, Pencil, Trash2, X, Check, ExternalLink, Eye, EyeOff, TrendingUp, BarChart3, Shield, AlertTriangle, CheckCircle2, XCircle, ArrowUpRight, Clock, Users, MousePointerClick, Activity } from "lucide-react"
+import { Save, Globe, FileText, Search, Plus, Pencil, Trash2, X, Check, ExternalLink, Eye, EyeOff, TrendingUp, BarChart3, Shield, AlertTriangle, CheckCircle2, XCircle, ArrowUpRight, Clock, Users, MousePointerClick, Activity } from "lucide-react"
 import { AdminShell } from "./admin-shell"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
 import useSWR from "swr"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
@@ -23,8 +23,6 @@ export function AdminSettings() {
     storeName: "", storeTagline: "", storeEmail: "", storePhone: "", storeAddress: "",
     currency: "KSh", whatsappNumber: "",
     metaTitle: "", metaDescription: "", metaKeywords: "",
-    primaryColor: "#0a0a0a", secondaryColor: "#fafafa",
-    fontHeading: "Playfair Display", fontBody: "Inter",
     logoUrl: "", faviconUrl: "",
     footerText: "",
     socialInstagram: "", socialTiktok: "", socialTwitter: "", socialFacebook: "",
@@ -45,10 +43,6 @@ export function AdminSettings() {
         metaTitle: settings.meta_title || "",
         metaDescription: settings.meta_description || "",
         metaKeywords: settings.meta_keywords || "",
-        primaryColor: settings.primary_color || "#0a0a0a",
-        secondaryColor: settings.secondary_color || "#fafafa",
-        fontHeading: "Playfair Display",
-        fontBody: "Inter",
         logoUrl: settings.logo_url || "",
         faviconUrl: settings.favicon_url || "",
         footerText: settings.footer_about || "",
@@ -95,7 +89,6 @@ export function AdminSettings() {
           <TabsList className="bg-secondary flex-wrap h-auto gap-1 p-1">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="seo">SEO</TabsTrigger>
-            <TabsTrigger value="theme">Theme</TabsTrigger>
             <TabsTrigger value="footer">Footer & Social</TabsTrigger>
           </TabsList>
 
@@ -137,63 +130,6 @@ export function AdminSettings() {
 
           <TabsContent value="seo" className="mt-6">
             <SeoManager />
-          </TabsContent>
-
-          <TabsContent value="theme" className="mt-6">
-            <div className="max-w-2xl space-y-6">
-              <div className="border border-border rounded-sm p-6 space-y-5">
-                <h3 className="text-sm font-semibold uppercase tracking-wider flex items-center gap-2"><Palette className="h-4 w-4" /> Branding</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div><Label className="text-sm font-medium mb-1.5 block">Logo Image URL</Label><Input value={form.logoUrl} onChange={(e) => setForm({ ...form, logoUrl: e.target.value })} placeholder="Optional" /></div>
-                  <div><Label className="text-sm font-medium mb-1.5 block">Favicon URL</Label><Input value={form.faviconUrl} onChange={(e) => setForm({ ...form, faviconUrl: e.target.value })} placeholder="Optional" /></div>
-                </div>
-              </div>
-              <div className="border border-border rounded-sm p-6 space-y-5">
-                <h3 className="text-sm font-semibold uppercase tracking-wider">Colors & Fonts</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium mb-1.5 block">Primary Color</Label>
-                    <div className="flex items-center gap-2">
-                      <input type="color" value={form.primaryColor} onChange={(e) => setForm({ ...form, primaryColor: e.target.value })} className="w-10 h-10 border border-border rounded-sm cursor-pointer" />
-                      <Input value={form.primaryColor} onChange={(e) => setForm({ ...form, primaryColor: e.target.value })} className="flex-1" />
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium mb-1.5 block">Secondary Color</Label>
-                    <div className="flex items-center gap-2">
-                      <input type="color" value={form.secondaryColor} onChange={(e) => setForm({ ...form, secondaryColor: e.target.value })} className="w-10 h-10 border border-border rounded-sm cursor-pointer" />
-                      <Input value={form.secondaryColor} onChange={(e) => setForm({ ...form, secondaryColor: e.target.value })} className="flex-1" />
-                    </div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium mb-1.5 block">Heading Font</Label>
-                    <Select value={form.fontHeading} onValueChange={(val) => setForm({ ...form, fontHeading: val })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Playfair Display">Playfair Display</SelectItem>
-                        <SelectItem value="Cormorant Garamond">Cormorant Garamond</SelectItem>
-                        <SelectItem value="Libre Baskerville">Libre Baskerville</SelectItem>
-                        <SelectItem value="DM Serif Display">DM Serif Display</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium mb-1.5 block">Body Font</Label>
-                    <Select value={form.fontBody} onValueChange={(val) => setForm({ ...form, fontBody: val })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Inter">Inter</SelectItem>
-                        <SelectItem value="DM Sans">DM Sans</SelectItem>
-                        <SelectItem value="Poppins">Poppins</SelectItem>
-                        <SelectItem value="Outfit">Outfit</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-            </div>
           </TabsContent>
 
           <TabsContent value="footer" className="mt-6">

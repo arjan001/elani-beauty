@@ -11,7 +11,6 @@ import type { Product, Category } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { CartDrawer } from "./cart-drawer"
-import { ThemeToggle } from "@/components/theme-toggle"
 import useSWR from "swr"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
@@ -172,7 +171,6 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-1 lg:gap-3">
-            <ThemeToggle />
             <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSearchOpen(!searchOpen)}>
               <Search className="h-5 w-5" /><span className="sr-only">Search</span>
             </Button>
