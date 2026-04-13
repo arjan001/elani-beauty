@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { Plus, Pencil, Trash2, X, Upload, Search, Download, FileUp, ImagePlus, Loader2, Eye } from "lucide-react"
 import { AdminShell } from "./admin-shell"
 import { formatPrice } from "@/lib/format"
+import { isVideoUrl } from "@/lib/media-utils"
 import type { Product, ProductVariation } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -529,7 +530,11 @@ export function AdminProducts() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="relative w-10 h-12 bg-secondary rounded-sm overflow-hidden flex-shrink-0">
-                          <Image src={product.images[0] || "/placeholder.svg"} alt={product.name} fill className="object-cover" />
+                          {isVideoUrl(product.images[0]) ? (
+                            <video src={product.images[0]} muted className="absolute inset-0 w-full h-full object-cover" />
+                          ) : (
+                            <Image src={product.images[0] || "/placeholder.svg"} alt={product.name} fill className="object-cover" />
+                          )}
                         </div>
                         <span className="font-medium line-clamp-1">{product.name}</span>
                       </div>
@@ -670,7 +675,7 @@ export function AdminProducts() {
 
             {/* Image Upload */}
             <div>
-              <Label className="text-sm font-medium mb-1.5 block">Product Images ({form.images.length})</Label>
+              <Label className="text-sm font-medium mb-1.5 block">Product Media ({form.images.length})</Label>
 
               {/* Drag-and-drop zone */}
               <div
@@ -688,14 +693,14 @@ export function AdminProducts() {
                 ) : (
                   <div className="py-2">
                     <ImagePlus className="h-8 w-8 mx-auto text-muted-foreground mb-1.5" />
-                    <p className="text-sm font-medium">Click or drag images here</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Select multiple files at once. JPG, PNG, WebP supported.</p>
+                    <p className="text-sm font-medium">Click or drag images/videos here</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Select multiple files at once. JPG, PNG, WebP, MP4, WebM, MOV supported.</p>
                   </div>
                 )}
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/*,video/mp4,video/webm,video/quicktime"
                   multiple
                   className="hidden"
                   onChange={(e) => { handleImageUpload(e.target.files); if (e.target) e.target.value = "" }}
@@ -705,13 +710,20 @@ export function AdminProducts() {
               {/* Image grid with reorder hint */}
               {form.images.length > 0 && (
                 <div className="mb-3">
-                  <p className="text-[11px] text-muted-foreground mb-2">First image is the main product photo. Click X to remove.</p>
+                  <p className="text-[11px] text-muted-foreground mb-2">First image/video is the main product media. Click X to remove.</p>
                   <div className="flex flex-wrap gap-2">
                     {form.images.map((img, i) => (
                       <div key={i} className="relative w-16 h-20 bg-secondary rounded-sm overflow-hidden group">
-                        <Image src={img || "/placeholder.svg"} alt={`Image ${i + 1}`} fill className="object-cover" />
+                        {isVideoUrl(img) ? (
+                          <video src={img} muted className="absolute inset-0 w-full h-full object-cover" />
+                        ) : (
+                          <Image src={img || "/placeholder.svg"} alt={`Image ${i + 1}`} fill className="object-cover" />
+                        )}
                         {i === 0 && (
                           <span className="absolute bottom-0 left-0 right-0 bg-foreground/80 text-background text-[8px] text-center py-0.5 font-bold tracking-wider">MAIN</span>
+                        )}
+                        {isVideoUrl(img) && i !== 0 && (
+                          <span className="absolute bottom-0 left-0 right-0 bg-foreground/60 text-background text-[8px] text-center py-0.5 font-bold tracking-wider">VIDEO</span>
                         )}
                         <button
                           type="button"
@@ -741,7 +753,7 @@ export function AdminProducts() {
                 <Input
                   value={newImageUrl}
                   onChange={(e) => setNewImageUrl(e.target.value)}
-                  placeholder="Or paste image URL..."
+                  placeholder="Or paste image/video URL..."
                   className="flex-1"
                   onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addImage())}
                 />
@@ -945,7 +957,7 @@ export function AdminProducts() {
                               <td className="px-2 py-1.5 font-medium max-w-[180px] truncate">{row["Name"]}</td>
                               <td className="px-2 py-1.5">{row["Price"] ? `KSh ${Number(row["Price"]).toLocaleString()}` : "-"}</td>
                               <td className="px-2 py-1.5">{row["Category Slug"] || "-"}</td>
-                              <td className="px-2 py-1.5">{(row["Image URLs (pipe separated)"] || "").split("|").filter(Boolean).length} img</td>
+                              <td className="px-2 py-1.5">{(row["Image URLs (pipe separated)"] || "").split("|").filter(Boolean).length} media</td>
                               <td className="px-2 py-1.5 max-w-[120px] truncate">{row["Tags (comma separated)"] || "-"}</td>
                             </tr>
                           ))}
@@ -1009,18 +1021,30 @@ export function AdminProducts() {
               {previewProduct.images.length > 0 && (
                 <div className="space-y-2">
                   <div className="relative w-full aspect-square max-h-[320px] bg-secondary rounded-sm overflow-hidden">
-                    <Image
-                      src={previewProduct.images[0]}
-                      alt={previewProduct.name}
-                      fill
-                      className="object-contain"
-                    />
+                    {isVideoUrl(previewProduct.images[0]) ? (
+                      <video
+                        src={previewProduct.images[0]}
+                        controls
+                        className="absolute inset-0 w-full h-full object-contain"
+                      />
+                    ) : (
+                      <Image
+                        src={previewProduct.images[0]}
+                        alt={previewProduct.name}
+                        fill
+                        className="object-contain"
+                      />
+                    )}
                   </div>
                   {previewProduct.images.length > 1 && (
                     <div className="flex gap-2 overflow-x-auto pb-1">
                       {previewProduct.images.map((img, i) => (
                         <div key={i} className="relative w-16 h-20 bg-secondary rounded-sm overflow-hidden flex-shrink-0 border border-border">
-                          <Image src={img} alt={`${previewProduct.name} ${i + 1}`} fill className="object-cover" />
+                          {isVideoUrl(img) ? (
+                            <video src={img} muted className="absolute inset-0 w-full h-full object-cover" />
+                          ) : (
+                            <Image src={img} alt={`${previewProduct.name} ${i + 1}`} fill className="object-cover" />
+                          )}
                         </div>
                       ))}
                     </div>

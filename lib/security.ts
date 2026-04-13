@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 
+// Re-export client-safe media utilities for backward compatibility in server code
+export { IMAGE_TYPES, VIDEO_TYPES, MEDIA_TYPES, isVideoUrl, validateUpload, validateMediaUpload } from "@/lib/media-utils"
+
 // ==========================================
 // IN-MEMORY RATE LIMITER (per serverless instance)
 // ==========================================
@@ -130,17 +133,3 @@ export function isValidUUID(id: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
 }
 
-/** Validate file upload: type + size */
-export function validateUpload(
-  file: File,
-  maxSizeMB = 5,
-  allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"]
-): { valid: boolean; error?: string } {
-  if (!allowedTypes.includes(file.type)) {
-    return { valid: false, error: `File type ${file.type} not allowed. Use JPG, PNG, WebP, or GIF.` }
-  }
-  if (file.size > maxSizeMB * 1024 * 1024) {
-    return { valid: false, error: `File too large. Maximum ${maxSizeMB}MB.` }
-  }
-  return { valid: true }
-}

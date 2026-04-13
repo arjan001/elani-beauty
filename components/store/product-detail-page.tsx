@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { ChevronRight, Minus, Plus, Heart, ShoppingBag, Truck, RotateCcw, Shield } from "lucide-react"
+import { ChevronRight, Minus, Plus, Heart, ShoppingBag, Truck, RotateCcw, Shield, Play } from "lucide-react"
 import { TopBar } from "./top-bar"
 import { Navbar } from "./navbar"
 import { Footer } from "./footer"
@@ -11,6 +11,7 @@ import { ProductCard } from "./product-card"
 import type { Product } from "@/lib/types"
 import { useCart } from "@/lib/cart-context"
 import { useWishlist } from "@/lib/wishlist-context"
+import { isVideoUrl } from "@/lib/media-utils"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import useSWR from "swr"
@@ -123,20 +124,39 @@ export function ProductDetailPage({ slug }: { slug: string }) {
                       selectedImage === i ? "border-foreground" : "border-border"
                     }`}
                   >
-                    <Image src={img || "/placeholder.svg"} alt={`${product.name} view ${i + 1}`} fill className="object-cover" />
+                    {isVideoUrl(img) ? (
+                      <>
+                        <video src={img} muted playsInline preload="metadata" className="absolute inset-0 w-full h-full object-cover" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Play className="h-3 w-3 text-background drop-shadow" />
+                        </div>
+                      </>
+                    ) : (
+                      <Image src={img || "/placeholder.svg"} alt={`${product.name} view ${i + 1}`} fill className="object-cover" />
+                    )}
                   </button>
                 ))}
               </div>
 
-              {/* Main Image */}
+              {/* Main Image / Video */}
               <div className="flex-1 relative aspect-[3/4] overflow-hidden rounded-sm bg-secondary">
-                <Image
-                  src={product.images[selectedImage] || "/placeholder.svg"}
-                  alt={product.name}
-                  fill
-                  className="object-cover"
-                  priority
-                />
+                {isVideoUrl(product.images[selectedImage]) ? (
+                  <video
+                    key={selectedImage}
+                    src={product.images[selectedImage]}
+                    controls
+                    playsInline
+                    className="absolute inset-0 w-full h-full object-contain bg-black"
+                  />
+                ) : (
+                  <Image
+                    src={product.images[selectedImage] || "/placeholder.svg"}
+                    alt={product.name}
+                    fill
+                    className="object-cover"
+                    priority
+                  />
+                )}
                 {product.isOnOffer && product.offerPercentage && (
                   <span className="absolute top-4 left-4 bg-foreground text-background text-xs font-semibold tracking-wider uppercase px-3 py-1.5">
                     -{product.offerPercentage}%

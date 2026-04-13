@@ -2,27 +2,47 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { Heart, ShoppingBag, Eye } from "lucide-react"
+import { Heart, ShoppingBag, Eye, Play } from "lucide-react"
 import type { Product } from "@/lib/types"
 import { formatPrice } from "@/lib/format"
 import { useCart } from "@/lib/cart-context"
 import { useWishlist } from "@/lib/wishlist-context"
+import { isVideoUrl } from "@/lib/media-utils"
 
 export function ProductCard({ product }: { product: Product }) {
   const { addItem } = useCart()
   const { toggleItem, isInWishlist } = useWishlist()
   const wishlisted = isInWishlist(product.id)
+  const primaryMedia = product.images[0] || ""
+  const isPrimaryVideo = isVideoUrl(primaryMedia)
 
   return (
     <div className="group">
       <Link href={`/product/${product.slug}`}>
         <div className="relative aspect-[3/4] overflow-hidden rounded-sm bg-secondary">
-          <Image
-            src={product.images[0] || "/placeholder.svg"}
-            alt={product.name}
-            fill
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
-          />
+          {isPrimaryVideo ? (
+            <>
+              <video
+                src={primaryMedia}
+                muted
+                playsInline
+                preload="metadata"
+                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-10 h-10 bg-background/80 rounded-full flex items-center justify-center">
+                  <Play className="h-5 w-5 text-foreground ml-0.5" />
+                </div>
+              </div>
+            </>
+          ) : (
+            <Image
+              src={primaryMedia || "/placeholder.svg"}
+              alt={product.name}
+              fill
+              className="object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          )}
 
           {/* Badges */}
           <div className="absolute top-3 left-3 flex flex-col gap-1.5">
