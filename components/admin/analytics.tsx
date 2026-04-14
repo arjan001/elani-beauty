@@ -44,7 +44,7 @@ interface AnalyticsData {
   salesTimeline: { date: string; orders: number; revenue: number }[]
   devices: { device: string; count: number; percentage: number }[]
   browsers: { browser: string; count: number; percentage: number }[]
-  countries: { country: string; count: number; percentage: number }[]
+  countries: { country: string; countryName: string; count: number; percentage: number; topCities: { city: string; count: number }[] }[]
   referrers: { source: string; count: number }[]
   totalClicks: number
   topClicks: { target: string; count: number }[]
@@ -416,12 +416,21 @@ export function AdminAnalytics() {
                   ) : (analytics?.countries || []).map((c) => (
                     <div key={c.country}>
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm">{c.country}</span>
+                        <span className="text-sm font-medium">{c.countryName || c.country}</span>
                         <span className="text-xs text-muted-foreground">{c.percentage}% ({c.count})</span>
                       </div>
                       <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
                         <div className="h-full bg-foreground rounded-full" style={{ width: `${c.percentage}%` }} />
                       </div>
+                      {c.topCities && c.topCities.length > 0 && (
+                        <div className="mt-1 pl-3 flex flex-wrap gap-1">
+                          {c.topCities.map(city => (
+                            <span key={city.city} className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
+                              {city.city} ({city.count})
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

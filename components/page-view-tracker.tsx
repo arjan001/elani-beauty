@@ -97,9 +97,11 @@ export function PageViewTracker() {
       sessionId: getSessionId(),
       duration,
       scrollDepth: maxScrollDepth.current,
+      _update: true,
     })
 
     // Use sendBeacon for reliable delivery on page leave
+    // sendBeacon always sends POST, so we include _update flag to signal a duration update
     if (navigator.sendBeacon) {
       navigator.sendBeacon("/api/track-view", new Blob([payload], { type: "application/json" }))
     } else {
