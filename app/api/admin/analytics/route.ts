@@ -1,85 +1,55 @@
-import { createAdminClient } from "@/lib/supabase/admin"
 import { NextRequest, NextResponse } from "next/server"
+import { getPageViews, getEvents, getAbandonedCheckouts, countryCodeToName } from "@/lib/analytics-store"
 
 export async function GET(request: NextRequest) {
-  const supabase = createAdminClient()
   const { searchParams } = new URL(request.url)
   const days = parseInt(searchParams.get("days") || "30")
 
-  const since = new Date()
-  since.setDate(since.getDate() - days)
-  const sinceISO = since.toISOString()
+  // Fetch analytics data from Netlify Blobs
+  const [views, allEvents, abandoned] = await Promise.all([
+    getPageViews(days),
+    getEvents(days),
+    getAbandonedCheckouts(days),
+  ])
 
-  const prevSince = new Date()
-  prevSince.setDate(prevSince.getDate() - days * 2)
-  const prevSinceISO = prevSince.toISOString()
+  // Try to get orders from Supabase (graceful fallback if unavailable)
+  let orders: { id: string; total: number; status: string; created_at: string }[] = []
+  let prevOrders: { id: string; total: number }[] = []
+  let prevViewCount = 0
 
-  // Current period views (including new enhanced columns if available)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let currentViews: any[] | null = null
-  const { data: viewsData, error: viewsError } = await supabase
-    .from("page_views")
-    .select("id, page_path, referrer, country, device_type, browser, created_at, session_id, duration_seconds, is_bot, scroll_depth, visitor_id, is_returning, language, utm_source, utm_medium, utm_campaign")
-    .gte("created_at", sinceISO)
-    .order("created_at", { ascending: false })
-  currentViews = viewsData
+  try {
+    const { createAdminClient } = await import("@/lib/supabase/admin")
+    const supabase = createAdminClient()
 
-  // Fallback: if new columns don't exist yet (migration not run), query without them
-  if (viewsError && viewsError.message?.includes("column")) {
-    const fallback = await supabase
-      .from("page_views")
-      .select("id, page_path, referrer, country, device_type, browser, created_at, session_id, duration_seconds, is_bot, scroll_depth")
-      .gte("created_at", sinceISO)
-      .order("created_at", { ascending: false })
-    currentViews = fallback.data
+    const since = new Date()
+    since.setDate(since.getDate() - days)
+    const sinceISO = since.toISOString()
+    const prevSince = new Date()
+    prevSince.setDate(prevSince.getDate() - days * 2)
+    const prevSinceISO = prevSince.toISOString()
+
+    const [ordersRes, prevOrdersRes] = await Promise.all([
+      supabase.from("orders").select("id, total, status, created_at").gte("created_at", sinceISO).order("created_at", { ascending: false }),
+      supabase.from("orders").select("id, total").gte("created_at", prevSinceISO).lt("created_at", sinceISO),
+    ])
+
+    orders = ordersRes.data || []
+    prevOrders = prevOrdersRes.data || []
+  } catch {
+    // Supabase unavailable - orders will be empty
   }
 
-  // Previous period views for comparison
-  const { count: prevViewCount } = await supabase
-    .from("page_views")
-    .select("id", { count: "exact", head: true })
-    .gte("created_at", prevSinceISO)
-    .lt("created_at", sinceISO)
-
-  // Orders/sales data for the period
-  const { data: currentOrders } = await supabase
-    .from("orders")
-    .select("id, total, status, created_at")
-    .gte("created_at", sinceISO)
-    .order("created_at", { ascending: false })
-
-  const { data: prevOrders } = await supabase
-    .from("orders")
-    .select("id, total")
-    .gte("created_at", prevSinceISO)
-    .lt("created_at", sinceISO)
-
-  // Analytics events (clicks, interactions)
-  const { data: events } = await supabase
-    .from("analytics_events")
-    .select("id, event_type, event_target, event_data, page_path, session_id, is_bot, created_at")
-    .gte("created_at", sinceISO)
-    .order("created_at", { ascending: false })
-    .limit(5000)
-
-  // Abandoned checkouts
-  const { data: abandonedData } = await supabase
-    .from("abandoned_checkouts")
-    .select("id, session_id, customer_name, customer_phone, items, subtotal, step_reached, device_type, recovered, created_at")
-    .gte("created_at", sinceISO)
-    .order("created_at", { ascending: false })
-    .limit(200)
-
-  const views = currentViews || []
-  const orders = currentOrders || []
-  const allEvents = events || []
-  const abandoned = abandonedData || []
+  // Calculate previous period view count from blobs
+  const prevPeriodViews = await getPageViews(days * 2)
+  const since = new Date()
+  since.setDate(since.getDate() - days)
+  prevViewCount = prevPeriodViews.filter(v => new Date(v.created_at) < since).length
 
   const totalViews = views.length
   const totalOrders = orders.length
   const totalRevenue = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0)
-  const prevOrderCount = prevOrders?.length || 0
-  const prevRevenue = (prevOrders || []).reduce((sum, o) => sum + (Number(o.total) || 0), 0)
+  const prevOrderCount = prevOrders.length
+  const prevRevenue = prevOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0)
 
   // Separate human vs bot views
   const humanViews = views.filter(v => !v.is_bot)
@@ -187,13 +157,32 @@ export async function GET(request: NextRequest) {
     .sort((a, b) => b.count - a.count)
     .slice(0, 5)
 
-  // Country breakdown (human only)
-  const countryMap: Record<string, number> = {}
-  humanViews.forEach((v) => { if (v.country) countryMap[v.country] = (countryMap[v.country] || 0) + 1 })
+  // Country breakdown (human only) - now with full country names, city, and region
+  const countryMap: Record<string, { count: number; name: string; cities: Record<string, number> }> = {}
+  humanViews.forEach((v) => {
+    if (v.country) {
+      if (!countryMap[v.country]) {
+        countryMap[v.country] = { count: 0, name: v.country_name || countryCodeToName(v.country), cities: {} }
+      }
+      countryMap[v.country].count++
+      if (v.city) {
+        countryMap[v.country].cities[v.city] = (countryMap[v.country].cities[v.city] || 0) + 1
+      }
+    }
+  })
   const countries = Object.entries(countryMap)
-    .map(([country, count]) => ({ country, count, percentage: Math.round((count / Math.max(humanViewCount, 1)) * 100) }))
+    .map(([country, data]) => ({
+      country,
+      countryName: data.name,
+      count: data.count,
+      percentage: Math.round((data.count / Math.max(humanViewCount, 1)) * 100),
+      topCities: Object.entries(data.cities)
+        .map(([city, count]) => ({ city, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5),
+    }))
     .sort((a, b) => b.count - a.count)
-    .slice(0, 10)
+    .slice(0, 20)
 
   // Top referrers (human only)
   const refMap: Record<string, number> = {}
@@ -213,7 +202,6 @@ export async function GET(request: NextRequest) {
   const clickEvents = allEvents.filter(e => e.event_type === "click" && !e.is_bot)
   const totalClicks = clickEvents.length
 
-  // Top clicked elements
   const clickTargetMap: Record<string, number> = {}
   clickEvents.forEach(e => {
     const target = e.event_target || "Unknown"
@@ -224,7 +212,6 @@ export async function GET(request: NextRequest) {
     .sort((a, b) => b.count - a.count)
     .slice(0, 20)
 
-  // Clicks by page
   const clickPageMap: Record<string, number> = {}
   clickEvents.forEach(e => {
     clickPageMap[e.page_path || "/"] = (clickPageMap[e.page_path || "/"] || 0) + 1
@@ -234,13 +221,12 @@ export async function GET(request: NextRequest) {
     .sort((a, b) => b.count - a.count)
     .slice(0, 10)
 
-  // ===== ENHANCED ANALYTICS: Traffic Source Categorization =====
+  // Traffic Source Categorization
   const searchEngines = ["google", "bing", "yahoo", "duckduckgo", "baidu", "yandex", "ecosia", "brave"]
   const socialNetworks = ["facebook", "instagram", "tiktok", "twitter", "x.com", "linkedin", "pinterest", "reddit", "youtube", "snapchat", "whatsapp", "t.co"]
   const emailProviders = ["mail", "email", "outlook", "gmail", "newsletter"]
 
   function categorizeSource(referrer: string, utmMedium?: string, utmSource?: string): string {
-    // UTM medium takes highest priority (like Google Analytics)
     if (utmMedium) {
       const med = utmMedium.toLowerCase()
       if (med === "cpc" || med === "ppc" || med === "paid" || med === "paidsearch") return "Paid Search"
@@ -251,14 +237,12 @@ export async function GET(request: NextRequest) {
       if (med === "display" || med === "banner" || med === "cpm") return "Display"
       if (med === "affiliate") return "Affiliate"
     }
-    // UTM source as secondary signal
     if (utmSource) {
       const src = utmSource.toLowerCase()
       if (searchEngines.some(se => src.includes(se))) return "Organic Search"
       if (socialNetworks.some(sn => src.includes(sn))) return "Social"
       if (emailProviders.some(ep => src.includes(ep))) return "Email"
     }
-    // Referrer-based detection
     if (!referrer) return "Direct"
     try {
       const host = new URL(referrer).hostname.toLowerCase()
@@ -280,8 +264,7 @@ export async function GET(request: NextRequest) {
     .map(([channel, count]) => ({ channel, count, percentage: Math.round((count / Math.max(humanViewCount, 1)) * 100) }))
     .sort((a, b) => b.count - a.count)
 
-  // ===== New vs Returning Visitors =====
-  // Count unique visitor IDs; if is_returning is set, use it; otherwise estimate from session data
+  // New vs Returning Visitors
   const visitorMap: Record<string, boolean> = {}
   humanViews.forEach(v => {
     const vid = v.visitor_id || v.session_id
@@ -299,7 +282,7 @@ export async function GET(request: NextRequest) {
     returningPercentage: Math.round((returningVisitors / totalUniqueVisitors) * 100),
   }
 
-  // ===== UTM Campaign Data =====
+  // UTM Campaign Data
   const campaignMap: Record<string, { views: number; source: string; medium: string }> = {}
   humanViews.forEach(v => {
     if (v.utm_campaign) {
@@ -314,7 +297,6 @@ export async function GET(request: NextRequest) {
     .sort((a, b) => b.views - a.views)
     .slice(0, 10)
 
-  // Also aggregate UTM events for richer campaign data
   const utmEvents = allEvents.filter(e => e.event_type === "utm_landing" && !e.is_bot)
   const utmSourceMap: Record<string, number> = {}
   utmEvents.forEach(e => {
@@ -326,11 +308,11 @@ export async function GET(request: NextRequest) {
     .sort((a, b) => b.count - a.count)
     .slice(0, 10)
 
-  // ===== Language Breakdown =====
+  // Language Breakdown
   const langMap: Record<string, number> = {}
   humanViews.forEach(v => {
     if (v.language) {
-      const lang = v.language.split("-")[0] // "en-US" -> "en"
+      const lang = v.language.split("-")[0]
       langMap[lang] = (langMap[lang] || 0) + 1
     }
   })
@@ -349,46 +331,33 @@ export async function GET(request: NextRequest) {
   })
 
   return NextResponse.json({
-    // Basic metrics
     totalViews,
     humanViewCount,
     botViewCount,
-    previousPeriodViews: prevViewCount || 0,
+    previousPeriodViews: prevViewCount,
     uniqueSessions,
     avgDuration,
     avgScrollDepth,
     bounceRate,
-
-    // Sales
     totalOrders,
     totalRevenue,
     prevOrderCount,
     prevRevenue,
-
-    // Time series
     topPages,
     pageRetention,
     viewsByDay,
     salesTimeline,
-
-    // Breakdowns
     devices,
     browsers,
     countries,
     referrers,
-
-    // Interactions
     totalClicks,
     topClicks,
     clicksByPage,
-
-    // Bot traffic
     botTraffic: {
       total: botViewCount,
       percentage: totalViews > 0 ? Math.round((botViewCount / totalViews) * 100) : 0,
     },
-
-    // Abandoned checkouts
     abandonedCheckouts: {
       total: totalAbandoned,
       recovered: recoveredCount,
@@ -404,8 +373,6 @@ export async function GET(request: NextRequest) {
         createdAt: a.created_at,
       })),
     },
-
-    // Enhanced analytics
     trafficChannels,
     newVsReturning,
     utmCampaigns,
