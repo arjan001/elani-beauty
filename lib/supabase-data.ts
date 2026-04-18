@@ -246,6 +246,9 @@ export async function createOrder(order: {
   mpesaCode?: string
   mpesaPhone?: string
   mpesaMessage?: string
+  paymentStatus?: string
+  paymentReference?: string
+  paymentCheckoutId?: string
   items: {
     productId: string
     productName: string
@@ -280,6 +283,9 @@ export async function createOrder(order: {
       mpesa_code: order.mpesaCode || null,
       mpesa_phone: order.mpesaPhone || null,
       mpesa_message: order.mpesaMessage || null,
+      payment_status: order.paymentStatus || "pending",
+      payment_reference: order.paymentReference || null,
+      payment_checkout_id: order.paymentCheckoutId || null,
       status: "pending",
     })
     .select()

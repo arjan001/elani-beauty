@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ChevronRight, Minus, Plus, X, Truck, Loader2, CheckCircle, Package, MapPin } from "lucide-react"
+import { ChevronRight, Minus, Plus, X, Truck, CheckCircle, Package, MapPin } from "lucide-react"
 import { TopBar } from "./top-bar"
 import { Navbar } from "./navbar"
 import { Footer } from "./footer"
@@ -158,39 +158,11 @@ export function CheckoutPage() {
     setShowMpesa(true)
   }
 
-  const handleMpesaConfirmed = async (mpesaCode: string, mpesaPhone: string, mpesaMessage: string) => {
-    try {
-      const payload = {
-        ...buildOrderPayload("mpesa"),
-        paymentMethod: "mpesa",
-        mpesaCode,
-        mpesaPhone: mpesaPhone || formData.phone,
-        mpesaMessage,
-        status: "pending",
-      }
-
-      const res = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        alert("Error placing order: " + (data.error || "Unknown error"))
-        setShowMpesa(false)
-        return
-      }
-
-      setOrderResult({ orderNumber: data.orderNumber, paymentMethod: "mpesa" })
-      clearCart()
-      setShowMpesa(false)
-    } catch (err) {
-      console.error("[v0] M-PESA order exception:", err)
-      alert("Error processing payment: " + (err instanceof Error ? err.message : "Unknown error"))
-      setShowMpesa(false)
-    }
+  const handleMpesaSuccess = (info: { orderNumber: string; mpesaReceipt?: string; mpesaPhone: string }) => {
+    // The order was created + marked paid by the PayHero webhook. Show success UI and clear cart.
+    setOrderResult({ orderNumber: info.orderNumber, paymentMethod: "mpesa" })
+    clearCart()
+    setShowMpesa(false)
   }
 
 
@@ -663,7 +635,9 @@ export function CheckoutPage() {
         isOpen={showMpesa}
         onClose={() => setShowMpesa(false)}
         total={freeShipping ? totalPrice : grandTotal}
-        onPaymentConfirmed={handleMpesaConfirmed}
+        defaultPhone={formData.phone}
+        buildPayload={() => buildOrderPayload("mpesa")}
+        onPaymentSuccess={handleMpesaSuccess}
       />
 
       <CardPaymentModal

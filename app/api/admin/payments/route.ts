@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAuth, rateLimit, rateLimitResponse } from "@/lib/security"
 import { createClient } from "@/lib/supabase/server"
+import { initiateStkPush, isPayHeroConfigured, callbackUrl, normalizePhone } from "@/lib/payhero"
 
-const LIPANA_API_BASE = "https://api.lipana.dev/v1"
-
-function getLipanaKey(): string | null {
-  return process.env.LIPANA_SECRET_KEY || null
-}
-
-// GET: Fetch transactions from Lipana or card payment orders
+// GET: Fetch M-Pesa orders (PayHero-initiated) or card orders from our DB.
 export async function GET(request: NextRequest) {
   const rl = rateLimit(request, { limit: 30, windowSeconds: 60 })
   if (!rl.success) return rateLimitResponse()
@@ -18,113 +13,95 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const action = searchParams.get("action") || "transactions"
 
-  // Card payments are fetched from the orders table, not Lipana
+  const supabase = await createClient()
+  if (!supabase) return NextResponse.json({ error: "Database not available" }, { status: 500 })
+
   if (action === "card-payments") {
-    try {
-      const supabase = await createClient()
-      const { data, error } = await supabase
-        .from("orders")
-        .select("id, order_no, customer_name, customer_phone, customer_email, subtotal, delivery_fee, total, status, payment_method, order_notes, created_at")
-        .eq("payment_method", "card")
-        .order("created_at", { ascending: false })
-        .limit(100)
-
-      if (error) {
-        console.error("Supabase card payments error:", error)
-        return NextResponse.json({ error: "Failed to fetch card payments" }, { status: 500 })
-      }
-      return NextResponse.json(data || [])
-    } catch (error) {
-      console.error("Card payments error:", error)
-      return NextResponse.json({ error: "Failed to fetch card payments" }, { status: 500 })
-    }
+    const { data, error } = await supabase
+      .from("orders")
+      .select("id, order_no, customer_name, customer_phone, customer_email, subtotal, delivery_fee, total, status, payment_method, order_notes, created_at")
+      .eq("payment_method", "card")
+      .order("created_at", { ascending: false })
+      .limit(100)
+    if (error) return NextResponse.json({ error: "Failed to fetch card payments" }, { status: 500 })
+    return NextResponse.json(data || [])
   }
 
-  const apiKey = getLipanaKey()
-  if (!apiKey) {
-    return NextResponse.json({ error: "Lipana API key not configured. Add LIPANA_SECRET_KEY to environment variables." }, { status: 500 })
+  // transactions = M-Pesa orders processed via PayHero (plus legacy mpesa orders)
+  if (action === "transactions") {
+    const statusFilter = searchParams.get("status") || ""
+    let query = supabase
+      .from("orders")
+      .select("id, order_no, customer_name, customer_phone, total, status, payment_method, payment_status, payment_reference, payment_checkout_id, payment_provider_reference, payment_result_desc, payment_updated_at, mpesa_code, mpesa_phone, created_at")
+      .eq("payment_method", "mpesa")
+      .order("created_at", { ascending: false })
+      .limit(100)
+    if (statusFilter) query = query.eq("payment_status", statusFilter)
+    const { data, error } = await query
+    if (error) return NextResponse.json({ error: "Failed to fetch M-Pesa orders" }, { status: 500 })
+
+    const rows = (data || []).map((o) => ({
+      id: o.id,
+      orderNo: o.order_no,
+      customer: o.customer_name,
+      phone: o.mpesa_phone || o.customer_phone,
+      amount: Number(o.total) || 0,
+      status: o.payment_status || "pending",
+      orderStatus: o.status,
+      reference: o.payment_reference || o.order_no,
+      checkoutRequestId: o.payment_checkout_id || null,
+      providerReference: o.payment_provider_reference || o.mpesa_code || null,
+      resultDesc: o.payment_result_desc || null,
+      createdAt: o.created_at,
+      updatedAt: o.payment_updated_at,
+    }))
+    return NextResponse.json(rows)
   }
 
-  try {
-    if (action === "transactions") {
-      const status = searchParams.get("status") || ""
-      const limit = searchParams.get("limit") || "50"
-      const params = new URLSearchParams()
-      if (status) params.set("status", status)
-      params.set("limit", limit)
-
-      const res = await fetch(`${LIPANA_API_BASE}/transactions?${params.toString()}`, {
-        headers: { "x-api-key": apiKey },
-      })
-      const data = await res.json()
-      return NextResponse.json(data)
-    }
-
-    if (action === "payment-links") {
-      const res = await fetch(`${LIPANA_API_BASE}/payment-links`, {
-        headers: { "x-api-key": apiKey },
-      })
-      const data = await res.json()
-      return NextResponse.json(data)
-    }
-
-    return NextResponse.json({ error: "Invalid action" }, { status: 400 })
-  } catch (error) {
-    console.error("Lipana API error:", error)
-    return NextResponse.json({ error: "Failed to fetch from Lipana API" }, { status: 500 })
-  }
+  return NextResponse.json({ error: "Invalid action" }, { status: 400 })
 }
 
-// POST: Create payment links or initiate STK push
+// POST: Admin can trigger an STK push to a customer's phone.
 export async function POST(request: NextRequest) {
   const rl = rateLimit(request, { limit: 15, windowSeconds: 60 })
   if (!rl.success) return rateLimitResponse()
   const auth = await requireAuth()
   if (!auth.authenticated) return auth.response!
 
-  const apiKey = getLipanaKey()
-  if (!apiKey) {
-    return NextResponse.json({ error: "Lipana API key not configured. Add LIPANA_SECRET_KEY to environment variables." }, { status: 500 })
+  if (!isPayHeroConfigured()) {
+    return NextResponse.json({ error: "PayHero is not configured. Set PAYHERO_API_USERNAME, PAYHERO_API_PASSWORD and PAYHERO_CHANNEL_ID." }, { status: 500 })
   }
 
   try {
     const body = await request.json()
-    const { action, ...payload } = body
-
-    if (action === "create-payment-link") {
-      const res = await fetch(`${LIPANA_API_BASE}/payment-links`, {
-        method: "POST",
-        headers: {
-          "x-api-key": apiKey,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      })
-      const data = await res.json()
-      if (!res.ok) return NextResponse.json(data, { status: res.status })
-      return NextResponse.json(data)
-    }
+    const { action } = body
 
     if (action === "stk-push") {
-      const res = await fetch(`${LIPANA_API_BASE}/transactions/push-stk`, {
-        method: "POST",
-        headers: {
-          "x-api-key": apiKey,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          phone: payload.phone,
-          amount: payload.amount,
-        }),
+      const amount = Number(body.amount)
+      if (!body.phone || !amount || amount < 1) {
+        return NextResponse.json({ error: "Phone and amount are required" }, { status: 400 })
+      }
+      const reference = `ADMIN-${Date.now().toString(36).toUpperCase()}`
+      const result = await initiateStkPush({
+        amount,
+        phone: normalizePhone(String(body.phone)),
+        externalReference: reference,
+        customerName: body.customerName || "Admin Request",
+        callbackUrl: callbackUrl(request),
       })
-      const data = await res.json()
-      if (!res.ok) return NextResponse.json(data, { status: res.status })
-      return NextResponse.json(data)
+      if (!result.success) {
+        return NextResponse.json({ error: result.error || "Failed to initiate STK push" }, { status: 502 })
+      }
+      return NextResponse.json({
+        success: true,
+        reference: result.reference || reference,
+        checkoutRequestId: result.checkoutRequestId,
+      })
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 })
   } catch (error) {
-    console.error("Lipana API error:", error)
-    return NextResponse.json({ error: "Failed to process Lipana request" }, { status: 500 })
+    console.error("PayHero admin error:", error)
+    return NextResponse.json({ error: "Failed to process request" }, { status: 500 })
   }
 }
