@@ -163,20 +163,8 @@ export function AdminProducts() {
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this product?")) return
     try {
-      let res = await fetch(`/api/admin/products?id=${id}`, { method: "DELETE" })
-      let data = await res.json().catch(() => ({} as { error?: string; canForce?: boolean; referencedByOrders?: number }))
-
-      if (res.status === 409 && data?.canForce) {
-        const refs = data.referencedByOrders || 0
-        const proceed = confirm(
-          `This product appears in ${refs} past order item${refs === 1 ? "" : "s"}. ` +
-            `Delete it anyway? Past orders will keep their name/price snapshot but lose the link to this product.`,
-        )
-        if (!proceed) return
-        res = await fetch(`/api/admin/products?id=${id}&force=1`, { method: "DELETE" })
-        data = await res.json().catch(() => ({}))
-      }
-
+      const res = await fetch(`/api/admin/products?id=${id}`, { method: "DELETE" })
+      const data = await res.json().catch(() => ({} as { error?: string }))
       mutateProducts()
       if (res.ok) {
         toast.success("Product deleted")
@@ -424,22 +412,10 @@ export function AdminProducts() {
 
   const handleBulkDelete = async () => {
     if (!confirm(`Delete ${selectedIds.size} selected product${selectedIds.size === 1 ? "" : "s"}?`)) return
-    let forceAll = false
     let ok = 0
-    let skipped = 0
     let failed = 0
     for (const id of selectedIds) {
-      let res = await fetch(`/api/admin/products?id=${id}`, { method: "DELETE" })
-      if (res.status === 409) {
-        if (!forceAll) {
-          const proceed = confirm(
-            "Some selected products are referenced by past orders. Force-delete all such products? Order history will be kept with a product snapshot.",
-          )
-          if (!proceed) { skipped++; continue }
-          forceAll = true
-        }
-        res = await fetch(`/api/admin/products?id=${id}&force=1`, { method: "DELETE" })
-      }
+      const res = await fetch(`/api/admin/products?id=${id}`, { method: "DELETE" })
       if (res.ok) ok++
       else failed++
     }
@@ -447,7 +423,6 @@ export function AdminProducts() {
     mutateProducts()
     const parts: string[] = []
     if (ok) parts.push(`${ok} deleted`)
-    if (skipped) parts.push(`${skipped} skipped`)
     if (failed) parts.push(`${failed} failed`)
     if (failed) toast.error(parts.join(", "))
     else toast.success(parts.join(", ") || "Done")
