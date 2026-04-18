@@ -38,7 +38,7 @@ export function isPayHeroConfigured(): boolean {
 }
 
 function getBasicAuth(): string | null {
-  const prebuilt = process.env.PAYHERO_AUTH_TOKEN
+  const prebuilt = process.env.PAYHERO_AUTH_TOKEN || process.env.PAYHERO_BASIC_AUTH_TOKEN
   if (prebuilt) {
     return prebuilt.startsWith("Basic ") ? prebuilt : `Basic ${prebuilt}`
   }
@@ -60,15 +60,19 @@ export function normalizePhone(input: string): string {
 
 export async function initiateStkPush(input: PayHeroStkPushInput): Promise<PayHeroStkPushResponse> {
   const auth = getBasicAuth()
-  const channelId = process.env.PAYHERO_CHANNEL_ID
-  if (!auth || !channelId) {
-    return { success: false, error: "PayHero is not configured. Set PAYHERO_API_USERNAME, PAYHERO_API_PASSWORD and PAYHERO_CHANNEL_ID." }
+  const rawChannelId = process.env.PAYHERO_CHANNEL_ID
+  const channelId = Number(rawChannelId)
+  if (!auth) {
+    return { success: false, error: "PayHero is not configured. Set PAYHERO_API_USERNAME and PAYHERO_API_PASSWORD (or PAYHERO_BASIC_AUTH_TOKEN)." }
+  }
+  if (!rawChannelId || !Number.isFinite(channelId) || channelId <= 0) {
+    return { success: false, error: "PayHero channel is not configured. Set PAYHERO_CHANNEL_ID to the numeric channel id from your PayHero dashboard." }
   }
 
   const body = {
     amount: Math.round(input.amount),
     phone_number: normalizePhone(input.phone),
-    channel_id: Number(channelId),
+    channel_id: channelId,
     provider: "m-pesa",
     external_reference: input.externalReference,
     customer_name: input.customerName,
@@ -86,13 +90,15 @@ export async function initiateStkPush(input: PayHeroStkPushInput): Promise<PayHe
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok) {
-      return {
-        success: false,
-        error: (data as Record<string, unknown>)?.error_message as string
-          || (data as Record<string, unknown>)?.message as string
-          || `PayHero returned ${res.status}`,
-        raw: data,
-      }
+      const d = data as Record<string, unknown>
+      const apiMessage = (d?.error_message as string) || (d?.message as string) || (d?.error as string)
+      const friendly = res.status === 401 || res.status === 403
+        ? "PayHero rejected the request credentials. Please verify PAYHERO_API_USERNAME / PAYHERO_API_PASSWORD (or PAYHERO_BASIC_AUTH_TOKEN)."
+        : res.status === 400 && apiMessage
+          ? `PayHero rejected the request: ${apiMessage}`
+          : apiMessage || `PayHero returned ${res.status}`
+      console.error("[payhero] STK push failed", { status: res.status, response: data, payload: { ...body, phone_number: "<redacted>" } })
+      return { success: false, error: friendly, raw: data }
     }
     const d = data as Record<string, unknown>
     return {
@@ -103,7 +109,9 @@ export async function initiateStkPush(input: PayHeroStkPushInput): Promise<PayHe
       raw: data,
     }
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Network error calling PayHero" }
+    const msg = err instanceof Error ? err.message : "Network error calling PayHero"
+    console.error("[payhero] Network error reaching PayHero", err)
+    return { success: false, error: msg }
   }
 }
 
