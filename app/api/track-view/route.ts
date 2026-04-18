@@ -63,9 +63,23 @@ export async function POST(request: NextRequest) {
       utm_campaign: sanitize(body.utmCampaign || "", 200),
     })
 
-    // Touch realtime session tracker (non-bot only)
+    // Touch realtime session tracker with rich metadata (non-bot only)
     if (!isBot && sessionId) {
-      touchSession(sessionId).catch(() => {})
+      touchSession(sessionId, {
+        page_path: sanitize(body.path || "/", 500),
+        referrer: sanitize(body.referrer || "", 2000),
+        country: geo.country,
+        country_name: geo.countryName || countryCodeToName(geo.country),
+        city: geo.city,
+        region: geo.region,
+        latitude: geo.latitude,
+        longitude: geo.longitude,
+        device_type: deviceType,
+        browser,
+        ip_address: ip.slice(0, 45),
+        visitor_id: sanitize(body.visitorId || "", 100),
+        is_returning: body.isReturning === true,
+      }).catch(() => {})
     }
 
     return NextResponse.json({ success: true })

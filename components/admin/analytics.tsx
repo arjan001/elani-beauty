@@ -8,10 +8,12 @@ import {
   ArrowUpRight, ArrowDownRight, ChevronLeft, ChevronRight, Globe,
   Monitor, Smartphone, Tablet, Activity, MousePointerClick, Clock,
   BarChart3, Bot, ShieldCheck, ScrollText, ShoppingCart, AlertTriangle,
-  Search, Share2, Mail, Link2, UserPlus, UserCheck, Megaphone, Languages
+  Search, Share2, Mail, Link2, UserPlus, UserCheck, Megaphone, Languages,
+  MapPin, Wifi, Navigation, Timer, Network, Route
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import useSWR from "swr"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
@@ -65,14 +67,78 @@ interface AnalyticsData {
   languages: { language: string; count: number; percentage: number }[]
 }
 
+interface LiveVisitor {
+  sessionId: string
+  visitorId: string
+  page: string
+  referrer: string
+  country: string
+  countryName: string
+  city: string
+  region: string
+  latitude: number
+  longitude: number
+  device: string
+  browser: string
+  ip: string
+  isReturning: boolean
+  lastSeenSecondsAgo: number
+  durationSeconds: number
+}
+
+interface LiveData {
+  total: number
+  visitors: LiveVisitor[]
+  geoPoints: { lat: number; lng: number; count: number; city: string; country: string }[]
+}
+
+interface VisitorSession {
+  sessionId: string
+  visitorId: string
+  isReturning: boolean
+  country: string
+  countryName: string
+  city: string
+  region: string
+  device: string
+  browser: string
+  language: string
+  ip: string
+  referrer: string
+  utmSource: string
+  utmMedium: string
+  utmCampaign: string
+  pageCount: number
+  clickCount: number
+  maxScroll: number
+  durationSeconds: number
+  startedAt: string
+  endedAt: string
+  entryPage: string
+  exitPage: string
+  journey: { path: string; at: string; duration: number; scroll: number }[]
+}
+
+interface SessionsData {
+  totalSessions: number
+  sessions: VisitorSession[]
+  hourly: { hour: number; count: number }[]
+  topIps: { ip: string; count: number; country: string; city: string; lastSeen: string }[]
+}
+
 export function AdminAnalytics() {
   const { data: orders = [] } = useSWR<Order[]>("/api/admin/orders", fetcher)
   const { data: products = [] } = useSWR<Product[]>("/api/products", fetcher)
   const { data: analytics } = useSWR<AnalyticsData>("/api/admin/analytics?days=30", fetcher, { refreshInterval: 30000 })
+  const { data: live } = useSWR<LiveData>("/api/admin/analytics/live", fetcher, { refreshInterval: 5000 })
+  const { data: sessionsData } = useSWR<SessionsData>("/api/admin/analytics/sessions?days=7&limit=50", fetcher, { refreshInterval: 60000 })
   const [realTimeUsers, setRealTimeUsers] = useState(0)
   const [prodPage, setProdPage] = useState(1)
   const [activityPage, setActivityPage] = useState(1)
   const [clickPage, setClickPage] = useState(1)
+  const [sessionPage, setSessionPage] = useState(1)
+  const [ipPage, setIpPage] = useState(1)
+  const [selectedSession, setSelectedSession] = useState<VisitorSession | null>(null)
 
   useEffect(() => {
     const fetchRealtime = () => {
@@ -194,6 +260,14 @@ export function AdminAnalytics() {
         <Tabs defaultValue="traffic">
           <TabsList className="bg-secondary flex-wrap h-auto gap-1 p-1">
             <TabsTrigger value="traffic">Website Traffic</TabsTrigger>
+            <TabsTrigger value="live" className="gap-1.5">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
+              </span>
+              Live Now {live?.total ? `(${live.total})` : ""}
+            </TabsTrigger>
+            <TabsTrigger value="sessions">Visitor Sessions</TabsTrigger>
             <TabsTrigger value="engagement">Engagement</TabsTrigger>
             <TabsTrigger value="sales">Sales & Orders</TabsTrigger>
             <TabsTrigger value="bots">Bot Detection</TabsTrigger>
@@ -458,6 +532,23 @@ export function AdminAnalytics() {
                 </div>
               </div>
             </div>
+          </TabsContent>
+
+          {/* ===== LIVE VISITORS TAB ===== */}
+          <TabsContent value="live" className="mt-6 space-y-6">
+            <LiveVisitorsPanel live={live} />
+          </TabsContent>
+
+          {/* ===== VISITOR SESSIONS TAB ===== */}
+          <TabsContent value="sessions" className="mt-6 space-y-6">
+            <SessionsPanel
+              data={sessionsData}
+              sessionPage={sessionPage}
+              setSessionPage={setSessionPage}
+              ipPage={ipPage}
+              setIpPage={setIpPage}
+              onOpenSession={setSelectedSession}
+            />
           </TabsContent>
 
           {/* ===== ENGAGEMENT TAB ===== */}
@@ -787,6 +878,77 @@ export function AdminAnalytics() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Session Journey Dialog */}
+      <Dialog open={!!selectedSession} onOpenChange={() => setSelectedSession(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-background text-foreground">
+          <DialogHeader>
+            <DialogTitle className="font-serif flex items-center gap-2">
+              <Route className="h-4 w-4" /> Visitor Journey
+            </DialogTitle>
+          </DialogHeader>
+          {selectedSession && (
+            <div className="space-y-4 mt-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div className="border border-border rounded-sm p-2.5">
+                  <p className="text-muted-foreground uppercase tracking-wider text-[10px]">Pages</p>
+                  <p className="text-lg font-bold">{selectedSession.pageCount}</p>
+                </div>
+                <div className="border border-border rounded-sm p-2.5">
+                  <p className="text-muted-foreground uppercase tracking-wider text-[10px]">Duration</p>
+                  <p className="text-lg font-bold">{formatDuration(selectedSession.durationSeconds)}</p>
+                </div>
+                <div className="border border-border rounded-sm p-2.5">
+                  <p className="text-muted-foreground uppercase tracking-wider text-[10px]">Clicks</p>
+                  <p className="text-lg font-bold">{selectedSession.clickCount}</p>
+                </div>
+                <div className="border border-border rounded-sm p-2.5">
+                  <p className="text-muted-foreground uppercase tracking-wider text-[10px]">Max Scroll</p>
+                  <p className="text-lg font-bold">{selectedSession.maxScroll}%</p>
+                </div>
+              </div>
+
+              <div className="border border-border rounded-sm p-3 space-y-1.5 text-xs">
+                <div className="flex items-center gap-2 text-sm font-semibold mb-1"><MapPin className="h-3.5 w-3.5" /> Visitor Details</div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                  <div><span className="text-muted-foreground">Location: </span>{[selectedSession.city, selectedSession.region, selectedSession.countryName || selectedSession.country].filter(Boolean).join(", ") || "Unknown"}</div>
+                  <div><span className="text-muted-foreground">Device: </span><span className="capitalize">{selectedSession.device}</span> / {selectedSession.browser || "Unknown"}</div>
+                  <div><span className="text-muted-foreground">Referrer: </span>{selectedSession.referrer}</div>
+                  <div><span className="text-muted-foreground">Type: </span>{selectedSession.isReturning ? "Returning" : "New"} visitor</div>
+                  <div><span className="text-muted-foreground">Language: </span>{selectedSession.language || "-"}</div>
+                  {selectedSession.ip && <div className="font-mono"><span className="text-muted-foreground font-sans">IP: </span>{selectedSession.ip}</div>}
+                  {selectedSession.utmCampaign && <div className="col-span-2"><span className="text-muted-foreground">Campaign: </span>{selectedSession.utmCampaign} ({selectedSession.utmSource})</div>}
+                </div>
+              </div>
+
+              <div className="border border-border rounded-sm">
+                <div className="px-4 py-2.5 border-b border-border flex items-center gap-2">
+                  <Navigation className="h-3.5 w-3.5" />
+                  <h3 className="text-sm font-semibold">Page-by-page journey</h3>
+                </div>
+                <div className="divide-y divide-border">
+                  {selectedSession.journey.map((p, i) => (
+                    <div key={i} className="flex items-start gap-3 px-4 py-2.5">
+                      <div className="flex flex-col items-center pt-0.5">
+                        <div className="w-5 h-5 rounded-full bg-foreground text-background text-[10px] font-bold flex items-center justify-center">{i + 1}</div>
+                        {i < selectedSession.journey.length - 1 && <div className="w-px flex-1 bg-border mt-1 min-h-[18px]" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-mono truncate">{p.path}</p>
+                        <div className="flex items-center gap-3 text-[11px] text-muted-foreground mt-0.5">
+                          <span><Clock className="inline h-3 w-3 mr-1" />{new Date(p.at).toLocaleTimeString()}</span>
+                          {p.duration > 0 && <span><Timer className="inline h-3 w-3 mr-1" />{formatDuration(p.duration)}</span>}
+                          {p.scroll > 0 && <span><ScrollText className="inline h-3 w-3 mr-1" />{p.scroll}%</span>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </AdminShell>
   )
 }
@@ -926,4 +1088,324 @@ function getTimeAgo(date: Date): string {
   const diffDays = Math.floor(diffHours / 24)
   if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`
   return date.toLocaleDateString()
+}
+
+function DeviceIcon({ device }: { device: string }) {
+  if (device === "mobile") return <Smartphone className="h-3.5 w-3.5" />
+  if (device === "tablet") return <Tablet className="h-3.5 w-3.5" />
+  return <Monitor className="h-3.5 w-3.5" />
+}
+
+function LiveVisitorsPanel({ live }: { live?: LiveData }) {
+  const visitors = live?.visitors || []
+  const geoPoints = live?.geoPoints || []
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="border border-border p-5 rounded-sm bg-secondary/20">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider mb-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+            </span>
+            Active Right Now
+          </div>
+          <p className="text-3xl font-bold">{live?.total ?? 0}</p>
+          <p className="text-xs text-muted-foreground mt-1">visitors in the last 5 min</p>
+        </div>
+        <div className="border border-border p-5 rounded-sm">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider mb-2">
+            <Globe className="h-3.5 w-3.5" /> Locations
+          </div>
+          <p className="text-3xl font-bold">{geoPoints.length}</p>
+          <p className="text-xs text-muted-foreground mt-1">unique geo points</p>
+        </div>
+        <div className="border border-border p-5 rounded-sm">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider mb-2">
+            <UserCheck className="h-3.5 w-3.5" /> Returning Now
+          </div>
+          <p className="text-3xl font-bold">{visitors.filter(v => v.isReturning).length}</p>
+          <p className="text-xs text-muted-foreground mt-1">of {visitors.length} current visitors</p>
+        </div>
+      </div>
+
+      {/* Live visitor feed */}
+      <div className="border border-border rounded-sm">
+        <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+          <h2 className="text-sm font-semibold flex items-center gap-2">
+            <Activity className="h-3.5 w-3.5" /> Live Visitor Feed
+          </h2>
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Auto-refreshing every 5s</span>
+        </div>
+        {visitors.length === 0 ? (
+          <div className="px-5 py-16 text-center">
+            <Wifi className="h-8 w-8 mx-auto text-muted-foreground/50 mb-3" />
+            <p className="text-sm text-muted-foreground">No active visitors right now</p>
+            <p className="text-xs text-muted-foreground mt-1">Visitors appear here the moment they land on your site</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary/40">
+                <tr className="text-left">
+                  <th className="px-4 py-2.5 font-medium text-xs uppercase tracking-wider">Location</th>
+                  <th className="px-4 py-2.5 font-medium text-xs uppercase tracking-wider">Viewing</th>
+                  <th className="px-4 py-2.5 font-medium text-xs uppercase tracking-wider hidden md:table-cell">Referrer</th>
+                  <th className="px-4 py-2.5 font-medium text-xs uppercase tracking-wider hidden sm:table-cell">Device</th>
+                  <th className="px-4 py-2.5 font-medium text-xs uppercase tracking-wider">On site</th>
+                  <th className="px-4 py-2.5 font-medium text-xs uppercase tracking-wider hidden lg:table-cell">IP</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {visitors.map((v) => (
+                  <tr key={v.sessionId} className="hover:bg-secondary/20">
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-start gap-2">
+                        <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium">{v.city || "Unknown city"}</p>
+                          <p className="text-[11px] text-muted-foreground">{v.countryName || v.country || "Unknown"}{v.region ? ` - ${v.region}` : ""}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5 font-mono text-xs max-w-[220px] truncate">{v.page}</td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground hidden md:table-cell max-w-[160px] truncate">{v.referrer}</td>
+                    <td className="px-4 py-2.5 hidden sm:table-cell">
+                      <div className="flex items-center gap-2 text-xs">
+                        <DeviceIcon device={v.device} />
+                        <span className="capitalize">{v.device}</span>
+                        {v.isReturning && (
+                          <span className="text-[9px] uppercase bg-foreground/10 px-1.5 py-0.5 rounded">Returning</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5 text-xs">
+                      <span className="font-medium">{formatDuration(v.durationSeconds)}</span>
+                      <span className="text-[11px] text-muted-foreground block">last seen {v.lastSeenSecondsAgo}s ago</span>
+                    </td>
+                    <td className="px-4 py-2.5 text-[11px] font-mono text-muted-foreground hidden lg:table-cell">{v.ip || "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Geo points (simple clustered list) */}
+      {geoPoints.length > 0 && (
+        <div className="border border-border rounded-sm">
+          <div className="px-5 py-3 border-b border-border">
+            <h2 className="text-sm font-semibold flex items-center gap-2"><Globe className="h-3.5 w-3.5" /> Where they are</h2>
+          </div>
+          <div className="p-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {geoPoints.map((g, i) => (
+              <a
+                key={`${g.lat}-${g.lng}-${i}`}
+                href={`https://www.google.com/maps?q=${g.lat},${g.lng}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="border border-border rounded-sm p-3 hover:bg-secondary/30 transition-colors"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-medium truncate">{g.city || "Unknown"}</span>
+                  <span className="text-[10px] bg-foreground text-background px-1.5 py-0.5 rounded">{g.count}</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground truncate">{g.country}</p>
+                <p className="text-[10px] font-mono text-muted-foreground mt-1">{g.lat.toFixed(3)}, {g.lng.toFixed(3)}</p>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SessionsPanel({
+  data,
+  sessionPage,
+  setSessionPage,
+  ipPage,
+  setIpPage,
+  onOpenSession,
+}: {
+  data?: SessionsData
+  sessionPage: number
+  setSessionPage: React.Dispatch<React.SetStateAction<number>>
+  ipPage: number
+  setIpPage: React.Dispatch<React.SetStateAction<number>>
+  onOpenSession: (s: VisitorSession) => void
+}) {
+  const sessions = data?.sessions || []
+  const hourly = data?.hourly || []
+  const topIps = data?.topIps || []
+
+  const SESSION_PER_PAGE = 15
+  const sessionTotalPages = Math.max(1, Math.ceil(sessions.length / SESSION_PER_PAGE))
+  const pagedSessions = sessions.slice((sessionPage - 1) * SESSION_PER_PAGE, sessionPage * SESSION_PER_PAGE)
+
+  const IP_PER_PAGE = 10
+  const ipTotalPages = Math.max(1, Math.ceil(topIps.length / IP_PER_PAGE))
+  const pagedIps = topIps.slice((ipPage - 1) * IP_PER_PAGE, ipPage * IP_PER_PAGE)
+
+  const maxHourCount = Math.max(...hourly.map(h => h.count), 1)
+
+  return (
+    <div className="space-y-6">
+      {/* Hourly distribution */}
+      <div className="border border-border rounded-sm p-5">
+        <h2 className="text-sm font-semibold mb-4 flex items-center gap-2">
+          <Clock className="h-3.5 w-3.5" /> Traffic by Hour of Day (last 7 days)
+        </h2>
+        {hourly.every(h => h.count === 0) ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">No data yet</div>
+        ) : (
+          <>
+            <div className="flex items-end gap-1 h-32">
+              {hourly.map((h) => {
+                const pct = (h.count / maxHourCount) * 100
+                const intensity = h.count > 0 ? Math.max(0.2, h.count / maxHourCount) : 0.05
+                return (
+                  <div key={h.hour} className="flex-1 flex flex-col items-center justify-end h-full group relative">
+                    <span className="absolute -top-6 text-[10px] text-foreground font-medium opacity-0 group-hover:opacity-100 bg-foreground text-background px-1.5 py-0.5 rounded whitespace-nowrap z-10">
+                      {h.hour}:00 - {h.count} views
+                    </span>
+                    <div
+                      className="w-full rounded-t-sm transition-all"
+                      style={{ height: `${pct}%`, minHeight: h.count > 0 ? "2px" : "1px", backgroundColor: `hsl(var(--foreground) / ${intensity})` }}
+                    />
+                  </div>
+                )
+              })}
+            </div>
+            <div className="flex gap-1 mt-2">
+              {hourly.map((h) => (
+                <div key={h.hour} className="flex-1 text-center">
+                  {h.hour % 3 === 0 && <span className="text-[9px] text-muted-foreground">{h.hour}h</span>}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Recent sessions */}
+      <div className="border border-border rounded-sm">
+        <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+          <h2 className="text-sm font-semibold flex items-center gap-2"><Route className="h-3.5 w-3.5" /> Recent Visitor Sessions</h2>
+          <span className="text-[11px] text-muted-foreground">{data?.totalSessions || 0} total</span>
+        </div>
+        {sessions.length === 0 ? (
+          <div className="px-5 py-12 text-center text-sm text-muted-foreground">No session data yet</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary/40">
+                <tr className="text-left">
+                  <th className="px-4 py-2.5 font-medium text-xs uppercase tracking-wider">Visitor</th>
+                  <th className="px-4 py-2.5 font-medium text-xs uppercase tracking-wider hidden sm:table-cell">Location</th>
+                  <th className="px-4 py-2.5 font-medium text-xs uppercase tracking-wider hidden md:table-cell">Entry</th>
+                  <th className="px-4 py-2.5 font-medium text-xs uppercase tracking-wider text-center">Pages</th>
+                  <th className="px-4 py-2.5 font-medium text-xs uppercase tracking-wider">Duration</th>
+                  <th className="px-4 py-2.5 font-medium text-xs uppercase tracking-wider hidden lg:table-cell">Device</th>
+                  <th className="px-4 py-2.5 font-medium text-xs uppercase tracking-wider hidden md:table-cell">Started</th>
+                  <th className="px-4 py-2.5 font-medium text-xs uppercase tracking-wider text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {pagedSessions.map((s) => (
+                  <tr key={s.sessionId} className="hover:bg-secondary/20">
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-2">
+                        {s.isReturning ? (
+                          <UserCheck className="h-3.5 w-3.5 text-muted-foreground" />
+                        ) : (
+                          <UserPlus className="h-3.5 w-3.5 text-muted-foreground" />
+                        )}
+                        <span className="text-xs font-mono">{s.sessionId.slice(0, 8)}...</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5 hidden sm:table-cell">
+                      <div className="text-xs">
+                        <p>{s.city || "Unknown"}</p>
+                        <p className="text-muted-foreground text-[11px]">{s.countryName || s.country || "-"}</p>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5 hidden md:table-cell">
+                      <p className="text-xs font-mono truncate max-w-[140px]">{s.entryPage}</p>
+                      <p className="text-[11px] text-muted-foreground truncate max-w-[140px]">via {s.referrer}</p>
+                    </td>
+                    <td className="px-4 py-2.5 text-center font-medium">{s.pageCount}</td>
+                    <td className="px-4 py-2.5 text-xs">{formatDuration(s.durationSeconds)}</td>
+                    <td className="px-4 py-2.5 hidden lg:table-cell">
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <DeviceIcon device={s.device} />
+                        <span>{s.browser}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground hidden md:table-cell">
+                      {getTimeAgo(new Date(s.startedAt))}
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => onOpenSession(s)}>
+                        Journey
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {sessionTotalPages > 1 && (
+          <div className="flex items-center justify-between px-5 py-2.5 border-t border-border bg-secondary/30">
+            <span className="text-[11px] text-muted-foreground">{sessionPage}/{sessionTotalPages}</span>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="h-7 w-7" disabled={sessionPage === 1} onClick={() => setSessionPage(p => p - 1)}><ChevronLeft className="h-3.5 w-3.5" /></Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7" disabled={sessionPage === sessionTotalPages} onClick={() => setSessionPage(p => p + 1)}><ChevronRight className="h-3.5 w-3.5" /></Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Top IP addresses */}
+      <div className="border border-border rounded-sm">
+        <div className="px-5 py-3 border-b border-border">
+          <h2 className="text-sm font-semibold flex items-center gap-2"><Network className="h-3.5 w-3.5" /> Top IP Addresses</h2>
+        </div>
+        {topIps.length === 0 ? (
+          <div className="px-5 py-8 text-center text-sm text-muted-foreground">No IP data yet</div>
+        ) : (
+          <div className="divide-y divide-border">
+            {pagedIps.map((r, i) => (
+              <div key={r.ip} className="flex items-center justify-between px-5 py-2.5">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="text-xs text-muted-foreground w-5 flex-shrink-0">{(ipPage - 1) * IP_PER_PAGE + i + 1}.</span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-mono">{r.ip}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{[r.city, r.country].filter(Boolean).join(", ") || "Unknown location"}</p>
+                  </div>
+                </div>
+                <div className="text-right flex-shrink-0 ml-3">
+                  <p className="text-sm font-medium">{r.count}</p>
+                  <p className="text-[10px] text-muted-foreground">last: {getTimeAgo(new Date(r.lastSeen))}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {ipTotalPages > 1 && (
+          <div className="flex items-center justify-between px-5 py-2.5 border-t border-border bg-secondary/30">
+            <span className="text-[11px] text-muted-foreground">{ipPage}/{ipTotalPages}</span>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="h-7 w-7" disabled={ipPage === 1} onClick={() => setIpPage(p => p - 1)}><ChevronLeft className="h-3.5 w-3.5" /></Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7" disabled={ipPage === ipTotalPages} onClick={() => setIpPage(p => p + 1)}><ChevronRight className="h-3.5 w-3.5" /></Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }

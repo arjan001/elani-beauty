@@ -122,14 +122,37 @@ export function PageViewTracker() {
   // Track page unload
   useEffect(() => {
     const onBeforeUnload = () => sendDuration()
-    window.addEventListener("beforeunload", onBeforeUnload)
-    document.addEventListener("visibilitychange", () => {
+    const onVisibilityChange = () => {
       if (document.visibilityState === "hidden") sendDuration()
-    })
+    }
+    window.addEventListener("beforeunload", onBeforeUnload)
+    document.addEventListener("visibilitychange", onVisibilityChange)
     return () => {
       window.removeEventListener("beforeunload", onBeforeUnload)
+      document.removeEventListener("visibilitychange", onVisibilityChange)
     }
   }, [sendDuration])
+
+  // Heartbeat - keep realtime session alive for long reads (every 30s while tab visible)
+  useEffect(() => {
+    if (pathname.startsWith("/admin") || pathname.startsWith("/auth")) return
+    const beat = () => {
+      if (document.visibilityState !== "visible") return
+      if (!lastTracked.current) return
+      const duration = pageEnterTime.current
+        ? Math.round((Date.now() - pageEnterTime.current) / 1000)
+        : 0
+      const payload = JSON.stringify({
+        path: lastTracked.current,
+        sessionId: getSessionId(),
+        duration,
+        scrollDepth: maxScrollDepth.current,
+      })
+      fetch("/api/track-view", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: payload, keepalive: true }).catch(() => {})
+    }
+    const interval = setInterval(beat, 30000)
+    return () => clearInterval(interval)
+  }, [pathname])
 
   // Track page views
   useEffect(() => {
