@@ -66,7 +66,7 @@ export function ProductCard({ product }: { product: Product }) {
               className="w-9 h-9 flex items-center justify-center bg-background rounded-full shadow-sm hover:bg-secondary transition-colors"
               aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
             >
-              <Heart className={`h-4 w-4 ${wishlisted ? "fill-red-500 text-red-500" : ""}`} />
+              <Heart className={`h-4 w-4 ${wishlisted ? "fill-pink-500 text-pink-500" : "text-pink-400"}`} />
             </button>
             <button
               type="button"
@@ -85,7 +85,7 @@ export function ProductCard({ product }: { product: Product }) {
                 e.preventDefault()
                 addItem(product)
               }}
-              className="w-full flex items-center justify-center gap-2 bg-foreground text-background py-2.5 text-xs font-medium uppercase tracking-wider hover:bg-foreground/90 transition-colors"
+              className="w-full flex items-center justify-center gap-2 bg-pink-200 text-pink-950 py-2.5 text-xs font-semibold uppercase tracking-wider hover:bg-pink-300 transition-colors"
             >
               <ShoppingBag className="h-3.5 w-3.5" />
               Add to Cart

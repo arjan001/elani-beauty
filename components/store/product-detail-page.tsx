@@ -266,7 +266,7 @@ export function ProductDetailPage({ slug }: { slug: string }) {
               <div className="flex gap-3 mt-8">
                 <Button
                   onClick={handleAddToCart}
-                  className="flex-1 bg-foreground text-background hover:bg-foreground/90 h-12 text-sm font-medium"
+                  className="flex-1 bg-pink-200 text-pink-950 hover:bg-pink-300 h-12 text-sm font-semibold"
                 >
                   <ShoppingBag className="h-4 w-4 mr-2" />
                   Add to Cart
@@ -288,7 +288,7 @@ export function ProductDetailPage({ slug }: { slug: string }) {
                   className="h-12 w-12 flex-shrink-0 bg-transparent"
                   onClick={() => product && toggleItem(product)}
                 >
-                  <Heart className={`h-5 w-5 ${wishlisted ? "fill-red-500 text-red-500" : ""}`} />
+                  <Heart className={`h-5 w-5 ${wishlisted ? "fill-pink-500 text-pink-500" : "text-pink-400"}`} />
                   <span className="sr-only">{wishlisted ? "Remove from wishlist" : "Add to wishlist"}</span>
                 </Button>
               </div>

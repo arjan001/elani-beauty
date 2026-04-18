@@ -6,6 +6,7 @@ import { formatPrice } from "@/lib/format"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { trackAbandonment, type AbandonStep } from "@/lib/abandonment-tracker"
 
 type Stage = "input" | "waiting" | "success" | "failed" | "cancelled" | "timeout" | "insufficient_balance"
 
@@ -82,6 +83,19 @@ export function MpesaPaymentModal({ isOpen, onClose, total, defaultPhone, buildP
           clearTimers()
           setResultDesc(data.resultDesc || "")
           setStage(data.status as Stage)
+          const stepMap: Record<string, AbandonStep> = {
+            failed: "payment_mpesa_failed",
+            cancelled: "payment_mpesa_cancelled",
+            timeout: "payment_mpesa_timeout",
+            insufficient_balance: "payment_insufficient_balance",
+          }
+          const step = stepMap[data.status as string]
+          if (step) {
+            trackAbandonment(step, {
+              customerPhone: formatKenyanPhone(phone),
+              reason: data.resultDesc || "",
+            })
+          }
           return
         }
       } catch {
@@ -90,12 +104,25 @@ export function MpesaPaymentModal({ isOpen, onClose, total, defaultPhone, buildP
       if (Date.now() > deadline) {
         clearTimers()
         setStage("timeout")
+        trackAbandonment("payment_mpesa_timeout", {
+          customerPhone: formatKenyanPhone(phone),
+          reason: "No confirmation within 90s",
+        })
       }
     }, 3000)
 
     timeoutRef.current = setTimeout(() => {
       clearTimers()
-      setStage((s) => (s === "waiting" ? "timeout" : s))
+      setStage((s) => {
+        if (s === "waiting") {
+          trackAbandonment("payment_mpesa_timeout", {
+            customerPhone: formatKenyanPhone(phone),
+            reason: "No confirmation within 92s",
+          })
+          return "timeout"
+        }
+        return s
+      })
     }, 92_000)
   }
 

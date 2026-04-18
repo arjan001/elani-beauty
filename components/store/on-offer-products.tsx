@@ -1,40 +1,34 @@
 "use client"
 
 import Link from "next/link"
+import { useMemo } from "react"
 import { ArrowRight } from "lucide-react"
 import { ProductCard } from "./product-card"
 import type { Product } from "@/lib/types"
+import { pickCategoryMix, shuffle } from "@/lib/product-selection"
 import useSWR from "swr"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 export function OnOfferProducts() {
   const { data: products = [] } = useSWR<Product[]>("/api/products", fetcher)
-  const offerProducts = products.filter((p) => p.isOnOffer)
 
-  // If not enough offer products, supplement with mixed items from different categories
-  let displayed = [...offerProducts]
-  if (displayed.length < 4) {
-    const usedIds = new Set(displayed.map((p) => p.id))
-    const usedCats = new Set(displayed.map((p) => p.categorySlug))
-    for (const p of products) {
-      if (displayed.length >= 4) break
-      if (!usedIds.has(p.id) && !usedCats.has(p.categorySlug)) {
-        displayed.push(p)
-        usedIds.add(p.id)
-        usedCats.add(p.categorySlug)
+  const displayed = useMemo(() => {
+    const dresses = pickCategoryMix(products, "dresses", (p) => !!p.isOnOffer, 4)
+    const bodySuits = pickCategoryMix(products, "body-suits", (p) => !!p.isOnOffer, 4)
+    const picked: Product[] = [...dresses, ...bodySuits]
+    if (picked.length < 8) {
+      const usedIds = new Set(picked.map((p) => p.id))
+      const fallbackPool = products.filter((p) => !usedIds.has(p.id))
+      const preferred = fallbackPool.filter((p) => p.isOnOffer)
+      const rest = fallbackPool.filter((p) => !p.isOnOffer)
+      picked.push(...shuffle(preferred).slice(0, 8 - picked.length))
+      if (picked.length < 8) {
+        picked.push(...shuffle(rest).slice(0, 8 - picked.length))
       }
     }
-    for (const p of products) {
-      if (displayed.length >= 4) break
-      if (!usedIds.has(p.id)) {
-        displayed.push(p)
-        usedIds.add(p.id)
-      }
-    }
-  }
-
-  displayed = displayed.slice(0, 4)
+    return picked.slice(0, 8)
+  }, [products])
 
   if (displayed.length === 0) return null
 

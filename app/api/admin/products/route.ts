@@ -144,17 +144,75 @@ export async function DELETE(request: NextRequest) {
   const supabase = await createClient()
   const { searchParams } = new URL(request.url)
   const id = searchParams.get("id")
+  const force = searchParams.get("force") === "1"
 
   if (!id) {
     return NextResponse.json({ error: "Missing product ID" }, { status: 400 })
   }
 
   try {
+    // Check whether this product is referenced by any order_items so we can
+    // give a useful message instead of a generic 500 from a FK constraint.
+    const { count: orderItemCount } = await supabase
+      .from("order_items")
+      .select("id", { count: "exact", head: true })
+      .eq("product_id", id)
+
+    if ((orderItemCount ?? 0) > 0 && !force) {
+      return NextResponse.json(
+        {
+          error:
+            "This product is referenced by existing orders and cannot be hard-deleted. Retry with force=1 to detach it from past orders (order history will keep the product name and price snapshot).",
+          referencedByOrders: orderItemCount,
+          canForce: true,
+        },
+        { status: 409 },
+      )
+    }
+
+    if ((orderItemCount ?? 0) > 0 && force) {
+      // Detach: null out product_id on past order_items so order history
+      // survives while the product row can be removed.
+      const { error: detachError } = await supabase
+        .from("order_items")
+        .update({ product_id: null })
+        .eq("product_id", id)
+      if (detachError) {
+        console.error("Detach order_items error:", detachError)
+        return NextResponse.json(
+          { error: `Failed to detach order items: ${detachError.message}` },
+          { status: 500 },
+        )
+      }
+    }
+
+    // Explicitly remove dependent rows first. Most schemas cascade these via
+    // FK, but doing it here guarantees the product row can be deleted even
+    // when RLS or a non-cascading FK is in play.
+    await supabase.from("product_images").delete().eq("product_id", id)
+    await supabase.from("product_variations").delete().eq("product_id", id)
+    await supabase.from("product_tags").delete().eq("product_id", id)
+
     const { error } = await supabase.from("products").delete().eq("id", id)
-    if (error) throw error
+    if (error) {
+      const msg = error.message || "Failed to delete product"
+      // Postgres foreign-key violation
+      if ((error as { code?: string }).code === "23503") {
+        return NextResponse.json(
+          {
+            error:
+              "Product is referenced by other records and cannot be deleted. " +
+              msg,
+          },
+          { status: 409 },
+        )
+      }
+      return NextResponse.json({ error: msg }, { status: 500 })
+    }
     return NextResponse.json({ success: true })
   } catch (error) {
+    const msg = error instanceof Error ? error.message : "Failed to delete product"
     console.error("Delete product error:", error)
-    return NextResponse.json({ error: "Failed to delete product" }, { status: 500 })
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

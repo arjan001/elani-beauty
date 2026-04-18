@@ -57,7 +57,7 @@ interface AnalyticsData {
     recovered: number
     value: number
     byStep: Record<string, number>
-    recent: { id: string; customerName: string; items: unknown[]; subtotal: number; stepReached: string; recovered: boolean; createdAt: string }[]
+    recent: { id: string; customerName: string; customerPhone?: string; customerEmail?: string; items: unknown[]; subtotal: number; stepReached: string; reason?: string; deviceType?: string; recovered: boolean; createdAt: string }[]
   }
   // Enhanced real tracking data
   trafficChannels: { channel: string; count: number; percentage: number }[]
@@ -825,7 +825,7 @@ export function AdminAnalytics() {
               <div className="border border-border rounded-sm">
                 <div className="px-5 py-3 border-b border-border">
                   <h2 className="text-sm font-semibold flex items-center gap-2">
-                    <AlertTriangle className="h-3.5 w-3.5" /> Drop-off by Checkout Step
+                    <AlertTriangle className="h-3.5 w-3.5" /> Why shoppers dropped off
                   </h2>
                 </div>
                 <div className="p-5 space-y-4">
@@ -836,7 +836,7 @@ export function AdminAnalytics() {
                       return (
                         <div key={step}>
                           <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-sm font-medium capitalize">{step.replace(/_/g, " ")}</span>
+                            <span className="text-sm font-medium">{prettyAbandonStep(step)}</span>
                             <span className="text-xs text-muted-foreground">{count} ({pct}%)</span>
                           </div>
                           <div className="h-2 bg-secondary rounded-full overflow-hidden">
@@ -858,18 +858,38 @@ export function AdminAnalytics() {
                 {(analytics?.abandonedCheckouts.recent || []).length === 0 ? (
                   <div className="px-5 py-8 text-center text-sm text-muted-foreground">No abandoned checkouts yet</div>
                 ) : (analytics?.abandonedCheckouts.recent || []).map((a) => (
-                  <div key={a.id} className="flex items-center justify-between px-5 py-3">
-                    <div>
-                      <p className="text-sm font-medium">{a.customerName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {Array.isArray(a.items) ? a.items.length : 0} item(s) - Step: {a.stepReached}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium">{formatPrice(a.subtotal)}</p>
-                      <p className={`text-xs ${a.recovered ? "text-green-600" : "text-muted-foreground"}`}>
-                        {a.recovered ? "Recovered" : getTimeAgo(new Date(a.createdAt))}
-                      </p>
+                  <div key={a.id} className="px-5 py-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{a.customerName || "Anonymous shopper"}</p>
+                        <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                          <span className={`text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-sm border ${abandonStepTone(a.stepReached)}`}>
+                            {prettyAbandonStep(a.stepReached)}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {Array.isArray(a.items) ? a.items.length : 0} item{Array.isArray(a.items) && a.items.length === 1 ? "" : "s"}
+                          </span>
+                          {a.deviceType && (
+                            <span className="text-xs text-muted-foreground capitalize">{a.deviceType}</span>
+                          )}
+                        </div>
+                        {(a.customerPhone || a.customerEmail) && (
+                          <p className="text-xs text-muted-foreground mt-1 truncate">
+                            {[a.customerPhone, a.customerEmail].filter(Boolean).join(" · ")}
+                          </p>
+                        )}
+                        {a.reason && (
+                          <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 line-clamp-2">
+                            Reason: {a.reason}
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-sm font-semibold">{formatPrice(a.subtotal)}</p>
+                        <p className={`text-xs mt-0.5 ${a.recovered ? "text-green-600" : "text-muted-foreground"}`}>
+                          {a.recovered ? "Recovered" : getTimeAgo(new Date(a.createdAt))}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1088,6 +1108,29 @@ function getTimeAgo(date: Date): string {
   const diffDays = Math.floor(diffHours / 24)
   if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`
   return date.toLocaleDateString()
+}
+
+const ABANDON_STEP_LABELS: Record<string, string> = {
+  cart: "Added to cart, never started checkout",
+  cart_left: "Left the site with items in cart",
+  checkout_started: "Reached checkout, never paid",
+  payment_card: "Started card payment",
+  payment_card_failed: "Card payment failed",
+  payment_mpesa_failed: "M-Pesa payment failed",
+  payment_mpesa_cancelled: "Cancelled M-Pesa on phone",
+  payment_mpesa_timeout: "M-Pesa timed out (no PIN entered)",
+  payment_insufficient_balance: "Insufficient M-Pesa balance",
+}
+
+function prettyAbandonStep(step: string): string {
+  return ABANDON_STEP_LABELS[step] || step.replace(/_/g, " ")
+}
+
+function abandonStepTone(step: string): string {
+  if (step.startsWith("payment_")) return "bg-amber-50 text-amber-700 border-amber-200"
+  if (step === "cart_left") return "bg-pink-50 text-pink-700 border-pink-200"
+  if (step === "checkout_started") return "bg-blue-50 text-blue-700 border-blue-200"
+  return "bg-secondary text-muted-foreground border-border"
 }
 
 function DeviceIcon({ device }: { device: string }) {
