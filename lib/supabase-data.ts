@@ -284,14 +284,14 @@ export async function createOrder(order: {
       mpesa_phone: order.mpesaPhone || null,
       mpesa_message: order.mpesaMessage || null,
       payment_status: order.paymentStatus || "pending",
-      payment_reference: order.paymentReference || null,
-      payment_checkout_id: order.paymentCheckoutId || null,
+      ...(order.paymentReference !== undefined ? { payment_reference: order.paymentReference } : {}),
+      ...(order.paymentCheckoutId !== undefined ? { payment_checkout_id: order.paymentCheckoutId } : {}),
       status: "pending",
     })
     .select()
     .single()
 
-  if (orderError) throw orderError
+  if (orderError) throw new Error(`Order insert failed: ${orderError.message}`)
 
   // Insert order items - match actual order_items schema
   const orderItems = order.items.map((item) => ({
@@ -307,7 +307,7 @@ export async function createOrder(order: {
     .from("order_items")
     .insert(orderItems)
 
-  if (itemsError) throw itemsError
+  if (itemsError) throw new Error(`Order items insert failed: ${itemsError.message}`)
 
   return { orderNumber: orderData.order_no, orderId: orderData.id }
 }
