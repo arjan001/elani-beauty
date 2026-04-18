@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createOrder } from "@/lib/supabase-data"
-import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { rateLimit, rateLimitResponse, sanitize, isValidPhone, isValidEmail } from "@/lib/security"
 import { initiateStkPush, isPayHeroConfigured, normalizePhone, callbackUrl } from "@/lib/payhero"
 
@@ -98,22 +98,20 @@ export async function POST(request: NextRequest) {
 
   // Persist the PayHero reference & checkout id back to the order regardless of outcome.
   try {
-    const supabase = await createClient()
-    if (supabase) {
-      const { error: updateError } = await supabase
-        .from("orders")
-        .update({
-          payment_reference: created.orderNumber,
-          payment_checkout_id: stk.checkoutRequestId || null,
-          payment_status: stk.success ? "pending" : "failed",
-          payment_result_desc: stk.success ? null : stk.error || "STK push failed to initiate",
-          payment_updated_at: new Date().toISOString(),
-          status: stk.success ? "pending" : "cancelled",
-        })
-        .eq("id", created.orderId)
-      if (updateError) {
-        console.error("[stk-push] Failed to update order with payment reference:", updateError.message)
-      }
+    const supabase = createAdminClient()
+    const { error: updateError } = await supabase
+      .from("orders")
+      .update({
+        payment_reference: created.orderNumber,
+        payment_checkout_id: stk.checkoutRequestId || null,
+        payment_status: stk.success ? "pending" : "failed",
+        payment_result_desc: stk.success ? null : stk.error || "STK push failed to initiate",
+        payment_updated_at: new Date().toISOString(),
+        status: stk.success ? "pending" : "cancelled",
+      })
+      .eq("id", created.orderId)
+    if (updateError) {
+      console.error("[stk-push] Failed to update order with payment reference:", updateError.message)
     }
   } catch (err) {
     console.error("[stk-push] Exception updating order with payment reference:", err)

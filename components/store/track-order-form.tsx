@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
-import { Search, Package, Truck, CheckCircle, Clock, XCircle, Loader2, Phone, Hash } from "lucide-react"
+import { Search, Package, Truck, CheckCircle, Clock, XCircle, Loader2, Phone, Hash, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
@@ -73,6 +73,8 @@ export function TrackOrderForm({ initialOrderNumber }: { initialOrderNumber?: st
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [searched, setSearched] = useState(false)
+  const paymentConfirmed = searchParams.get("payment") === "success"
+  const mpesaReceipt = searchParams.get("receipt") || ""
 
   const doSearch = useCallback(async (type: "order" | "phone", value: string) => {
     if (!value.trim()) return
@@ -115,6 +117,26 @@ export function TrackOrderForm({ initialOrderNumber }: { initialOrderNumber?: st
 
   return (
     <div className="space-y-8">
+      {/* Payment Confirmed banner (shown right after M-PESA success) */}
+      {paymentConfirmed && (
+        <div className="bg-[#00843D]/5 border border-[#00843D]/20 rounded-sm p-5 flex items-start gap-4">
+          <div className="w-11 h-11 rounded-full bg-[#00843D]/15 flex items-center justify-center flex-shrink-0">
+            <CheckCircle2 className="h-6 w-6 text-[#00843D]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-base font-semibold text-[#00843D]">Payment Confirmed</p>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Your M-PESA payment went through. Track your order below — we will update the status as it moves.
+            </p>
+            {mpesaReceipt && (
+              <p className="text-xs text-muted-foreground mt-2">
+                M-PESA Ref: <span className="font-mono font-medium text-foreground">{mpesaReceipt}</span>
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Search Tabs */}
       <div className="bg-card border border-border rounded-sm p-6">
         <div className="flex gap-2 mb-5">

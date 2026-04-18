@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import type { Product, Category, DeliveryLocation, Offer, HeroBanner } from "./types"
 
 export function formatPrice(price: number): string {
@@ -259,8 +260,16 @@ export async function createOrder(order: {
     totalPrice: number
   }[]
 }) {
-  const supabase = await createClient()
-  if (!supabase) throw new Error("Database not available — missing Supabase environment variables")
+  // Use the service-role admin client so the RETURNING select after the
+  // insert bypasses RLS (orders_admin_read blocks anon selects, which
+  // would otherwise cause .single() to resolve with no rows and surface
+  // as "Could not save your order").
+  let supabase
+  try {
+    supabase = createAdminClient()
+  } catch {
+    throw new Error("Database not available — missing Supabase environment variables")
+  }
 
   // Generate order number
   const orderNumber = `CC-${Date.now().toString(36).toUpperCase()}`
