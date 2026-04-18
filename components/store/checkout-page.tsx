@@ -159,10 +159,14 @@ export function CheckoutPage() {
   }
 
   const handleMpesaSuccess = (info: { orderNumber: string; mpesaReceipt?: string; mpesaPhone: string }) => {
-    // The order was created + marked paid by the PayHero webhook. Show success UI and clear cart.
-    setOrderResult({ orderNumber: info.orderNumber, paymentMethod: "mpesa" })
+    // Payment confirmed via PayHero webhook — clear the cart and send the
+    // shopper straight to the order tracking page with a payment-confirmed
+    // banner so they see live status instead of a static success screen.
     clearCart()
     setShowMpesa(false)
+    const params = new URLSearchParams({ payment: "success" })
+    if (info.mpesaReceipt) params.set("receipt", info.mpesaReceipt)
+    router.push(`/track-order/${encodeURIComponent(info.orderNumber)}?${params.toString()}`)
   }
 
 
