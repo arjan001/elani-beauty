@@ -210,25 +210,65 @@ export async function getAbandonedCheckouts(days: number): Promise<AbandonedChec
 
 // ---- Realtime Sessions ----
 
-export async function touchSession(sessionId: string): Promise<void> {
+export interface RealtimeSession {
+  ts: number
+  page_path?: string
+  referrer?: string
+  country?: string
+  country_name?: string
+  city?: string
+  region?: string
+  latitude?: number
+  longitude?: number
+  device_type?: string
+  browser?: string
+  ip_address?: string
+  visitor_id?: string
+  is_returning?: boolean
+  started_at?: number
+}
+
+export async function touchSession(sessionId: string, meta: Partial<RealtimeSession> = {}): Promise<void> {
   const store = getStore({ name: REALTIME_STORE, consistency: "strong" })
-  await store.setJSON(sessionId, { ts: Date.now() })
+  const existing: RealtimeSession | null = await store.get(sessionId, { type: "json" })
+  const record: RealtimeSession = {
+    ...(existing || {}),
+    ...meta,
+    ts: Date.now(),
+    started_at: existing?.started_at || Date.now(),
+  }
+  await store.setJSON(sessionId, record)
 }
 
 export async function getActiveSessions(minutes: number = 5): Promise<number> {
-  const store = getStore(REALTIME_STORE)
+  const sessions = await getActiveSessionDetails(minutes)
+  return sessions.length
+}
+
+export async function getActiveSessionDetails(minutes: number = 5): Promise<(RealtimeSession & { session_id: string })[]> {
+  const store = getStore({ name: REALTIME_STORE, consistency: "strong" })
   const cutoff = Date.now() - minutes * 60 * 1000
   const { blobs } = await store.list()
-  let count = 0
+  const active: (RealtimeSession & { session_id: string })[] = []
+  const stale: string[] = []
   for (const blob of blobs) {
     try {
-      const data: { ts: number } | null = await store.get(blob.key, { type: "json" })
-      if (data && data.ts >= cutoff) count++
+      const data: RealtimeSession | null = await store.get(blob.key, { type: "json" })
+      if (data && data.ts >= cutoff) {
+        active.push({ ...data, session_id: blob.key })
+      } else if (data && data.ts < Date.now() - 60 * 60 * 1000) {
+        // Mark for cleanup - older than 1 hour
+        stale.push(blob.key)
+      }
     } catch {
       // ignore
     }
   }
-  return count
+  // Fire-and-forget cleanup of stale entries to keep store bounded
+  if (stale.length > 0) {
+    Promise.all(stale.map(k => store.delete(k).catch(() => {}))).catch(() => {})
+  }
+  return active.sort((a, b) => b.ts - a.ts)
 }
 
 // ---- Geo helpers ----
@@ -256,8 +296,18 @@ export function parseNetlifyGeo(headers: Headers): GeoData {
 
   const nfGeo = headers.get("x-nf-geo")
   if (nfGeo) {
+    // Netlify sends x-nf-geo as base64-encoded JSON; fall back to raw JSON for older setups
+    let jsonText = nfGeo
     try {
-      const parsed = JSON.parse(nfGeo)
+      const decoded = typeof atob === "function"
+        ? atob(nfGeo)
+        : Buffer.from(nfGeo, "base64").toString("utf-8")
+      if (decoded && decoded.trim().startsWith("{")) jsonText = decoded
+    } catch {
+      // if base64 decode fails, fall through to parse the raw value
+    }
+    try {
+      const parsed = JSON.parse(jsonText)
       geo.country = parsed?.country?.code || ""
       geo.countryName = parsed?.country?.name || ""
       geo.city = parsed?.city || ""
@@ -266,7 +316,7 @@ export function parseNetlifyGeo(headers: Headers): GeoData {
       geo.longitude = parsed?.longitude || 0
       geo.timezone = parsed?.timezone || ""
     } catch {
-      // ignore
+      // ignore parse errors
     }
   }
 

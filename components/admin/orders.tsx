@@ -53,17 +53,33 @@ const statusConfig: Record<OrderStatus, { label: string; icon: typeof Clock; cla
 const SALE_STATUSES: OrderStatus[] = ["confirmed", "dispatched", "delivered"]
 
 export function AdminOrders() {
-  const { data: orders = [], mutate } = useSWR<Order[]>("/api/admin/orders", fetcher)
+  const { data: orders = [], mutate } = useSWR<Order[]>("/api/admin/orders", fetcher, { refreshInterval: 30000 })
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState(false)
   const [activeTab, setActiveTab] = useState("all")
+  const [lastSeenPendingCount, setLastSeenPendingCount] = useState<number | null>(null)
 
   // Separate lists
   const salesOrders = orders.filter((o) => SALE_STATUSES.includes(o.status))
   const totalRevenue = salesOrders.reduce((sum, o) => sum + o.total, 0)
+  const pendingCount = orders.filter((o) => o.status === "pending").length
+
+  // Detect newly arrived pending orders and toast the admin once
+  useEffect(() => {
+    if (lastSeenPendingCount === null) {
+      setLastSeenPendingCount(pendingCount)
+      return
+    }
+    if (pendingCount > lastSeenPendingCount) {
+      const delta = pendingCount - lastSeenPendingCount
+      toast.info(`${delta} new pending order${delta > 1 ? "s" : ""} just arrived`)
+    }
+    setLastSeenPendingCount(pendingCount)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingCount])
 
   // Filter based on active tab + search + status filter
   const baseList = activeTab === "sales" ? salesOrders : orders
@@ -194,7 +210,7 @@ export function AdminOrders() {
 
   const stats = {
     all: orders.length,
-    pending: orders.filter((o) => o.status === "pending").length,
+    pending: pendingCount,
     sales: salesOrders.length,
     revenue: totalRevenue,
   }
