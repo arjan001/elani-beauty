@@ -54,8 +54,8 @@ export function WishlistPage() {
 
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20">
-              <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center mb-5">
-                <Heart className="h-10 w-10 text-muted-foreground" />
+              <div className="w-20 h-20 rounded-full bg-pink-100 flex items-center justify-center mb-5">
+                <Heart className="h-10 w-10 text-pink-400" />
               </div>
               <h2 className="text-xl font-serif font-bold">Your Wishlist is Empty</h2>
               <p className="text-sm text-muted-foreground mt-2 max-w-sm text-center">
@@ -119,7 +119,7 @@ export function WishlistPage() {
                               size="sm"
                               onClick={() => handleAddToCart(product)}
                               disabled={!product.inStock}
-                              className="bg-foreground text-background hover:bg-foreground/90 text-xs h-9 px-4 disabled:opacity-40"
+                              className="bg-pink-200 text-pink-950 hover:bg-pink-300 text-xs h-9 px-4 disabled:opacity-40 font-semibold"
                             >
                               <ShoppingBag className="h-3.5 w-3.5 mr-1.5" />
                               Add to Cart
@@ -183,7 +183,7 @@ export function WishlistPage() {
                       size="sm"
                       onClick={() => handleAddToCart(product)}
                       disabled={!product.inStock}
-                      className="w-full mt-3 bg-foreground text-background hover:bg-foreground/90 text-xs h-10 disabled:opacity-40"
+                      className="w-full mt-3 bg-pink-200 text-pink-950 hover:bg-pink-300 text-xs h-10 disabled:opacity-40 font-semibold"
                     >
                       <ShoppingBag className="h-3.5 w-3.5 mr-1.5" />
                       Move to Cart

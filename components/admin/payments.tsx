@@ -14,6 +14,8 @@ import {
   Phone,
   AlertCircle,
   Wallet,
+  PiggyBank,
+  Banknote,
 } from "lucide-react"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
@@ -47,6 +49,19 @@ interface CardPaymentOrder {
   payment_method: string
   order_notes?: string
   created_at: string
+}
+
+interface WalletBalance {
+  label: string
+  balance: number | null
+  currency: string
+  error: string | null
+}
+
+interface PayHeroBalances {
+  service: WalletBalance
+  payment: WalletBalance
+  subscription: WalletBalance
 }
 
 function formatPrice(amount: number): string {
@@ -182,6 +197,82 @@ function StkPushForm() {
   )
 }
 
+function PayHeroBalanceCards({
+  balances,
+  loading,
+  error,
+  notConfigured,
+}: {
+  balances: PayHeroBalances | { error: string } | undefined
+  loading: boolean
+  error: unknown
+  notConfigured: boolean
+}) {
+  if (notConfigured) return null
+  const errMsg =
+    error
+      ? "Could not reach the PayHero balance API."
+      : balances && !("service" in (balances as Record<string, unknown>))
+        ? (balances as { error?: string }).error || "Could not load PayHero balances."
+        : null
+
+  const safe = (balances && "service" in (balances as Record<string, unknown>)) ? (balances as PayHeroBalances) : null
+  const formatBal = (b: WalletBalance) => {
+    if (b.balance === null || b.balance === undefined) return "—"
+    return `${b.currency || "KES"} ${Number(b.balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  }
+
+  const cards: { key: keyof PayHeroBalances; icon: typeof Wallet; accent: string }[] = [
+    { key: "service", icon: Banknote, accent: "text-emerald-600" },
+    { key: "payment", icon: Wallet, accent: "text-blue-600" },
+    { key: "subscription", icon: PiggyBank, accent: "text-purple-600" },
+  ]
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">PayHero Balances</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Live balances from your PayHero account. Service Wallet covers STK push costs; Payments Wallet holds funds from customers awaiting withdrawal.
+          </p>
+        </div>
+      </div>
+      {errMsg && (
+        <div className="flex items-start gap-3 p-3 rounded-md border border-red-200 bg-red-50 text-red-800 mb-3">
+          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <p className="text-xs">{errMsg}</p>
+        </div>
+      )}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {cards.map(({ key, icon: Icon, accent }) => {
+          const b = safe?.[key]
+          return (
+            <div key={key} className="p-4 rounded-md border border-border">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                  {b?.label || (key === "service" ? "Service Wallet" : key === "payment" ? "Payments Wallet" : "Subscription Wallet")}
+                </p>
+                <Icon className={`h-4 w-4 ${accent}`} />
+              </div>
+              {loading && !safe ? (
+                <p className="text-2xl font-bold mt-1 text-muted-foreground animate-pulse">...</p>
+              ) : b?.error ? (
+                <>
+                  <p className="text-lg font-bold mt-1 text-muted-foreground">—</p>
+                  <p className="text-[11px] text-amber-700 mt-1 line-clamp-2" title={b.error}>{b.error}</p>
+                </>
+              ) : (
+                <p className={`text-2xl font-bold mt-1 ${accent}`}>{b ? formatBal(b) : "—"}</p>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export function AdminPayments() {
   const [activeTab, setActiveTab] = useState<"transactions" | "stk-push" | "card-payments">("transactions")
   const { data: transactions, isLoading: txLoading } = useSWR<MpesaTransaction[] | { error: string }>(
@@ -193,6 +284,11 @@ export function AdminPayments() {
     "/api/admin/payments?action=card-payments",
     fetcher,
     { refreshInterval: 15000 }
+  )
+  const { data: balances, isLoading: balLoading, error: balError } = useSWR<PayHeroBalances | { error: string }>(
+    "/api/admin/payments?action=balances",
+    fetcher,
+    { refreshInterval: 60000 }
   )
 
   const notConfigured = Array.isArray(transactions) === false &&
@@ -224,6 +320,7 @@ export function AdminPayments() {
             onClick={() => {
               mutate("/api/admin/payments?action=transactions")
               mutate("/api/admin/payments?action=card-payments")
+              mutate("/api/admin/payments?action=balances")
               toast.success("Refreshed")
             }}
             className="flex items-center gap-2 px-4 py-2 border border-border rounded-md text-sm hover:bg-secondary transition-colors self-start"
@@ -232,6 +329,9 @@ export function AdminPayments() {
             Refresh
           </button>
         </div>
+
+        {/* PayHero Balances */}
+        <PayHeroBalanceCards balances={balances} loading={balLoading} error={balError} notConfigured={!!notConfigured} />
 
         {/* Config Warning */}
         {notConfigured && (

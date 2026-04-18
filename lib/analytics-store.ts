@@ -156,6 +156,7 @@ export interface AbandonedCheckout {
   items: unknown[]
   subtotal: number
   step_reached: string
+  reason: string
   device_type: string
   browser: string
   recovered: boolean

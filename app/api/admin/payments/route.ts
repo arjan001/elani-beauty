@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAuth, rateLimit, rateLimitResponse } from "@/lib/security"
 import { createClient } from "@/lib/supabase/server"
-import { initiateStkPush, isPayHeroConfigured, callbackUrl, normalizePhone } from "@/lib/payhero"
+import { initiateStkPush, isPayHeroConfigured, callbackUrl, normalizePhone, fetchWalletBalance } from "@/lib/payhero"
 
 // GET: Fetch M-Pesa orders (PayHero-initiated) or card orders from our DB.
 export async function GET(request: NextRequest) {
@@ -12,6 +12,44 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url)
   const action = searchParams.get("action") || "transactions"
+
+  // Balances are read straight from PayHero — no DB access required, and we
+  // want to surface the real upstream error rather than masking it.
+  if (action === "balances") {
+    if (!isPayHeroConfigured()) {
+      return NextResponse.json(
+        {
+          error: "PayHero is not configured. Set PAYHERO_API_USERNAME, PAYHERO_API_PASSWORD and PAYHERO_CHANNEL_ID.",
+        },
+        { status: 500 },
+      )
+    }
+    const [service, payment, subscription] = await Promise.all([
+      fetchWalletBalance("service_wallet"),
+      fetchWalletBalance("payment_wallet"),
+      fetchWalletBalance("subscription_wallet"),
+    ])
+    return NextResponse.json({
+      service: {
+        label: "Service Wallet (STK Push Credits)",
+        balance: service.success ? service.balance ?? null : null,
+        currency: service.currency || "KES",
+        error: service.success ? null : service.error || "Failed to fetch service wallet",
+      },
+      payment: {
+        label: "Payments Wallet (Customer Funds)",
+        balance: payment.success ? payment.balance ?? null : null,
+        currency: payment.currency || "KES",
+        error: payment.success ? null : payment.error || "Failed to fetch payments wallet",
+      },
+      subscription: {
+        label: "Subscription Wallet",
+        balance: subscription.success ? subscription.balance ?? null : null,
+        currency: subscription.currency || "KES",
+        error: subscription.success ? null : subscription.error || "Not available for this PayHero account",
+      },
+    })
+  }
 
   const supabase = await createClient()
   if (!supabase) return NextResponse.json({ error: "Database not available" }, { status: 500 })

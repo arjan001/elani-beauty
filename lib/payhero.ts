@@ -194,6 +194,75 @@ export async function fetchTransactionStatus(reference: string): Promise<PayHero
   }
 }
 
+export interface PayHeroWalletResponse {
+  success: boolean
+  balance?: number
+  currency?: string
+  error?: string
+  raw?: unknown
+}
+
+/**
+ * Fetch a PayHero wallet balance.
+ *
+ * PayHero exposes balances via `GET /api/v2/wallets?wallet_type=<type>`.
+ * Known wallet types:
+ *   - `service_wallet`     - credits used to pay STK push fees ("account balance")
+ *   - `payment_wallet`     - funds collected from customers awaiting withdrawal
+ *   - `subscription_wallet`- subscription/credit balance (may not be enabled for
+ *     every merchant; the helper surfaces the upstream message instead of
+ *     throwing if the type is unsupported)
+ *
+ * The response JSON shape varies between merchants, so we probe several
+ * common field names for the balance before giving up.
+ */
+export async function fetchWalletBalance(walletType: string): Promise<PayHeroWalletResponse> {
+  const auth = getBasicAuth()
+  if (!auth) return { success: false, error: "PayHero is not configured." }
+  try {
+    const res = await fetch(`${PAYHERO_BASE}/wallets?wallet_type=${encodeURIComponent(walletType)}`, {
+      method: "GET",
+      headers: { Authorization: auth, Accept: "application/json" },
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      const d = data as Record<string, unknown>
+      const msg =
+        (d?.error_message as string) ||
+        (d?.message as string) ||
+        (d?.error as string) ||
+        `PayHero returned HTTP ${res.status}`
+      return { success: false, error: msg, raw: data }
+    }
+    const d = data as Record<string, unknown>
+    const nested =
+      (d.wallet as Record<string, unknown> | undefined) ||
+      (d.data as Record<string, unknown> | undefined) ||
+      (d.response as Record<string, unknown> | undefined) ||
+      {}
+    const rawBalance =
+      d.balance ??
+      d.available_balance ??
+      d.wallet_balance ??
+      nested.balance ??
+      nested.available_balance ??
+      nested.wallet_balance
+    const balance = rawBalance === undefined || rawBalance === null ? undefined : Number(rawBalance)
+    const currency =
+      (d.currency as string) ||
+      (nested.currency as string) ||
+      "KES"
+    return {
+      success: true,
+      balance: Number.isFinite(balance as number) ? (balance as number) : undefined,
+      currency,
+      raw: data,
+    }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Network error calling PayHero" }
+  }
+}
+
 /**
  * Map a PayHero callback ResultCode / status into our internal payment_status.
  * Reference: Safaricom STK ResultCodes.

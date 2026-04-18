@@ -366,9 +366,13 @@ export async function GET(request: NextRequest) {
       recent: abandoned.slice(0, 10).map(a => ({
         id: a.id,
         customerName: a.customer_name || "Anonymous",
+        customerPhone: a.customer_phone || "",
+        customerEmail: a.customer_email || "",
         items: a.items,
         subtotal: a.subtotal,
         stepReached: a.step_reached,
+        reason: a.reason || "",
+        deviceType: a.device_type || "",
         recovered: a.recovered,
         createdAt: a.created_at,
       })),

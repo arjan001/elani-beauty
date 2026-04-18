@@ -5,6 +5,7 @@ import { CartProvider } from "@/lib/cart-context"
 import { WishlistProvider } from "@/lib/wishlist-context"
 import { Toaster } from "@/components/ui/sonner"
 import { PageViewTracker } from "@/components/page-view-tracker"
+import { CartAbandonmentTracker } from "@/components/cart-abandonment-tracker"
 import { SITE_SEO } from "@/lib/seo-data"
 import "./globals.css"
 
@@ -296,7 +297,7 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased">
-          <WishlistProvider><CartProvider>{children}</CartProvider></WishlistProvider>
+          <WishlistProvider><CartProvider>{children}<CartAbandonmentTracker /></CartProvider></WishlistProvider>
           <PageViewTracker />
           <Toaster position="top-right" richColors closeButton />
       </body>

@@ -194,11 +194,14 @@ export function CheckoutPage() {
     } catch {
       // Silent - order attempt tracked
     }
+    if (status === "failed") {
+      trackAbandonedCheckout("payment_card_failed", `Card ending ${last4} declined`)
+    }
   }
 
   // Track abandoned checkouts
-  const trackAbandonedCheckout = (stepReached: string) => {
-    if (items.length === 0) return
+  const trackAbandonedCheckout = (stepReached: string, reason?: string) => {
+    if (items.length === 0 && !stepReached.startsWith("payment_")) return
     const sid = typeof window !== "undefined" ? sessionStorage.getItem("kf_sid") : null
     if (!sid) return
     fetch("/api/track-abandoned", {
@@ -212,6 +215,7 @@ export function CheckoutPage() {
         items: items.map(i => ({ name: i.product.name, qty: i.quantity, price: i.product.price })),
         subtotal: totalPrice,
         stepReached,
+        reason: reason || "",
       }),
     }).catch(() => {})
   }
