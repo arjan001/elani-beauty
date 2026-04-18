@@ -6,11 +6,17 @@ import { sendOrderConfirmationEmail } from "@/lib/email"
 /**
  * PayHero → our server webhook.
  *
- * The callback JSON typically contains a `response` object with:
- *   Amount, CheckoutRequestID, ExternalReference, MerchantRequestID,
- *   MpesaReceiptNumber, Phone, ResultCode, ResultDesc, Status
+ * Endpoint: POST /api/payments/callback
+ * Configure this URL in Netlify as PAYHERO_CALLBACK_URL (absolute https URL),
+ * or leave it unset to let the helper derive it from NEXT_PUBLIC_APP_URL /
+ * the Netlify-provided URL env var.
  *
- * We defensively read both the flat and nested shapes.
+ * PayHero posts a JSON body that may take one of these shapes:
+ *   { status, reference, ExternalReference, CheckoutRequestID, ResultCode,
+ *     ResultDesc, MpesaReceiptNumber, Phone, Amount, ... }
+ *   { response: { ...same fields... } }
+ *   { data:     { ...same fields... } }
+ * We defensively read both flat and nested shapes.
  */
 export async function POST(request: NextRequest) {
   let payload: Record<string, unknown> = {}
@@ -20,12 +26,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 })
   }
 
-  // PayHero may nest the meaningful fields under `response` or similar wrappers.
-  const body = pickObject(payload, "response") || pickObject(payload, "data") || payload
+  const body =
+    pickObject(payload, "response") ||
+    pickObject(payload, "data") ||
+    pickObject(payload, "Body") ||
+    payload
 
   const externalReference = String(
-    getField(body, ["ExternalReference", "external_reference", "reference"]) ||
-      getField(payload, ["ExternalReference", "external_reference", "reference"]) ||
+    getField(body, ["ExternalReference", "external_reference", "reference", "MerchantRequestID"]) ||
+      getField(payload, ["ExternalReference", "external_reference", "reference", "MerchantRequestID"]) ||
       ""
   )
   const checkoutRequestId = String(
@@ -33,7 +42,8 @@ export async function POST(request: NextRequest) {
       getField(payload, ["CheckoutRequestID", "checkout_request_id"]) ||
       ""
   )
-  const resultCode = getField(body, ["ResultCode", "result_code"]) ?? getField(payload, ["ResultCode", "result_code"])
+  const resultCode =
+    getField(body, ["ResultCode", "result_code"]) ?? getField(payload, ["ResultCode", "result_code"])
   const resultDesc = String(
     getField(body, ["ResultDesc", "result_desc"]) || getField(payload, ["ResultDesc", "result_desc"]) || ""
   )
@@ -46,11 +56,14 @@ export async function POST(request: NextRequest) {
       ""
   )
   const phone = String(
-    getField(body, ["Phone", "phone", "phone_number"]) || getField(payload, ["Phone", "phone", "phone_number"]) || ""
+    getField(body, ["Phone", "phone", "phone_number"]) ||
+      getField(payload, ["Phone", "phone", "phone_number"]) ||
+      ""
   )
 
   if (!externalReference && !checkoutRequestId) {
-    // Nothing to match the callback to. Acknowledge so PayHero doesn't retry forever.
+    console.warn("[payhero-callback] received callback with no reference / checkout id", payload)
+    // Still 200 so PayHero doesn't retry forever.
     return NextResponse.json({ ok: true, ignored: true })
   }
 
@@ -58,14 +71,20 @@ export async function POST(request: NextRequest) {
 
   const admin = createAdminClient()
 
-  // Locate the order via reference (preferred) or checkout id.
-  const query = admin.from("orders").select("id, order_no, customer_name, customer_email, customer_phone, total, subtotal, delivery_fee, delivery_address, payment_status").limit(1)
+  // Locate the order via external reference (preferred) or checkout id.
+  const query = admin
+    .from("orders")
+    .select(
+      "id, order_no, customer_name, customer_email, customer_phone, total, subtotal, delivery_fee, delivery_address, payment_status"
+    )
+    .limit(1)
   const lookup = externalReference
     ? await query.eq("payment_reference", externalReference).maybeSingle()
     : await query.eq("payment_checkout_id", checkoutRequestId).maybeSingle()
 
   if (lookup.error || !lookup.data) {
-    // Unknown order — still 200 so PayHero doesn't keep retrying.
+    console.warn("[payhero-callback] no matching order", { externalReference, checkoutRequestId, resultCode, status })
+    // 200 so PayHero stops retrying — nothing actionable on our side.
     return NextResponse.json({ ok: true, matched: false })
   }
 
@@ -91,7 +110,7 @@ export async function POST(request: NextRequest) {
 
   const { error: updateError } = await admin.from("orders").update(update).eq("id", order.id)
   if (updateError) {
-    console.error("PayHero callback update error:", updateError)
+    console.error("[payhero-callback] db update error", updateError)
     return NextResponse.json({ ok: false, error: "db update failed" }, { status: 500 })
   }
 
@@ -129,9 +148,9 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ ok: true })
 }
 
-// PayHero sometimes tests callbacks with GET; respond 200 so validation passes.
+// PayHero sometimes probes callbacks with GET to verify reachability.
 export async function GET() {
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, endpoint: "payhero-callback" })
 }
 
 function getField(obj: Record<string, unknown> | null | undefined, keys: string[]): unknown {

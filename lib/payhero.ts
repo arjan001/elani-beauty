@@ -2,11 +2,24 @@
  * PayHero M-Pesa STK Push integration helpers.
  * Docs: https://docs.payhero.co.ke/
  *
- * Auth: Basic token = base64("<API_USERNAME>:<API_PASSWORD>")
- *       OR a pre-built token copied from the PayHero dashboard.
+ * This project uses PayHero exclusively for M-Pesa payments — no direct
+ * Safaricom Daraja integration. All credentials come from env vars.
+ *
+ * Required env vars:
+ *   - PAYHERO_API_USERNAME + PAYHERO_API_PASSWORD  (or)
+ *     PAYHERO_AUTH_TOKEN / PAYHERO_BASIC_AUTH_TOKEN  (pre-built Basic token)
+ *   - PAYHERO_CHANNEL_ID  (numeric id from PayHero dashboard)
+ *
+ * Optional env vars:
+ *   - PAYHERO_CALLBACK_URL  (absolute public URL, overrides all fallbacks)
+ *   - NEXT_PUBLIC_APP_URL   (site origin used as fallback for callback URL)
+ *   - URL / DEPLOY_URL / DEPLOY_PRIME_URL / SITE_URL  (auto-set by Netlify —
+ *     used as final fallback so deploy previews & prod always have a working
+ *     callback URL even when PAYHERO_CALLBACK_URL is not set).
  */
 
 const PAYHERO_BASE = "https://backend.payhero.co.ke/api/v2"
+const CALLBACK_PATH = "/api/payments/callback"
 
 export interface PayHeroStkPushInput {
   amount: number
@@ -34,13 +47,14 @@ export interface PayHeroStatusResponse {
 }
 
 export function isPayHeroConfigured(): boolean {
-  return Boolean(getBasicAuth()) && Boolean(process.env.PAYHERO_CHANNEL_ID)
+  return Boolean(getBasicAuth()) && Boolean(getChannelId())
 }
 
 function getBasicAuth(): string | null {
   const prebuilt = process.env.PAYHERO_AUTH_TOKEN || process.env.PAYHERO_BASIC_AUTH_TOKEN
-  if (prebuilt) {
-    return prebuilt.startsWith("Basic ") ? prebuilt : `Basic ${prebuilt}`
+  if (prebuilt && prebuilt.trim()) {
+    const v = prebuilt.trim()
+    return v.startsWith("Basic ") ? v : `Basic ${v}`
   }
   const username = process.env.PAYHERO_API_USERNAME
   const password = process.env.PAYHERO_API_PASSWORD
@@ -49,7 +63,15 @@ function getBasicAuth(): string | null {
   return `Basic ${token}`
 }
 
-/** Normalize to Safaricom 2547XXXXXXXX format accepted by PayHero. */
+function getChannelId(): number | null {
+  const raw = process.env.PAYHERO_CHANNEL_ID
+  if (!raw) return null
+  const n = Number(String(raw).trim())
+  if (!Number.isFinite(n) || n <= 0) return null
+  return n
+}
+
+/** Normalize to Safaricom 2547XXXXXXXX / 2541XXXXXXXX format accepted by PayHero. */
 export function normalizePhone(input: string): string {
   let p = String(input || "").replace(/[\s+()-]/g, "")
   if (p.startsWith("254")) return p
@@ -60,13 +82,27 @@ export function normalizePhone(input: string): string {
 
 export async function initiateStkPush(input: PayHeroStkPushInput): Promise<PayHeroStkPushResponse> {
   const auth = getBasicAuth()
-  const rawChannelId = process.env.PAYHERO_CHANNEL_ID
-  const channelId = Number(rawChannelId)
+  const channelId = getChannelId()
   if (!auth) {
-    return { success: false, error: "PayHero is not configured. Set PAYHERO_API_USERNAME and PAYHERO_API_PASSWORD (or PAYHERO_BASIC_AUTH_TOKEN)." }
+    return {
+      success: false,
+      error:
+        "PayHero is not configured. Set PAYHERO_API_USERNAME and PAYHERO_API_PASSWORD (or PAYHERO_BASIC_AUTH_TOKEN) in your environment.",
+    }
   }
-  if (!rawChannelId || !Number.isFinite(channelId) || channelId <= 0) {
-    return { success: false, error: "PayHero channel is not configured. Set PAYHERO_CHANNEL_ID to the numeric channel id from your PayHero dashboard." }
+  if (!channelId) {
+    return {
+      success: false,
+      error:
+        "PayHero channel is not configured. Set PAYHERO_CHANNEL_ID to the numeric channel id from your PayHero dashboard.",
+    }
+  }
+  if (!input.callbackUrl || !/^https?:\/\//i.test(input.callbackUrl)) {
+    return {
+      success: false,
+      error:
+        "PayHero callback URL is not an absolute URL. Set PAYHERO_CALLBACK_URL to an https URL pointing to /api/payments/callback.",
+    }
   }
 
   const body = {
@@ -84,6 +120,7 @@ export async function initiateStkPush(input: PayHeroStkPushInput): Promise<PayHe
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Accept: "application/json",
         Authorization: auth,
       },
       body: JSON.stringify(body),
@@ -91,21 +128,39 @@ export async function initiateStkPush(input: PayHeroStkPushInput): Promise<PayHe
     const data = await res.json().catch(() => ({}))
     if (!res.ok) {
       const d = data as Record<string, unknown>
-      const apiMessage = (d?.error_message as string) || (d?.message as string) || (d?.error as string)
-      const friendly = res.status === 401 || res.status === 403
-        ? "PayHero rejected the request credentials. Please verify PAYHERO_API_USERNAME / PAYHERO_API_PASSWORD (or PAYHERO_BASIC_AUTH_TOKEN)."
-        : res.status === 400 && apiMessage
-          ? `PayHero rejected the request: ${apiMessage}`
-          : apiMessage || `PayHero returned ${res.status}`
-      console.error("[payhero] STK push failed", { status: res.status, response: data, payload: { ...body, phone_number: "<redacted>" } })
+      const apiMessage =
+        (d?.error_message as string) ||
+        (d?.message as string) ||
+        (d?.error as string) ||
+        (typeof d?.errors === "string" ? (d.errors as string) : "")
+      const friendly =
+        res.status === 401 || res.status === 403
+          ? "PayHero rejected the request credentials. Verify PAYHERO_API_USERNAME / PAYHERO_API_PASSWORD (or PAYHERO_BASIC_AUTH_TOKEN)."
+          : res.status === 400 && apiMessage
+            ? `PayHero rejected the request: ${apiMessage}`
+            : apiMessage || `PayHero returned HTTP ${res.status}`
+      console.error("[payhero] STK push failed", {
+        status: res.status,
+        response: data,
+        payload: { ...body, phone_number: "<redacted>" },
+      })
       return { success: false, error: friendly, raw: data }
     }
     const d = data as Record<string, unknown>
+    const nested = (d.response as Record<string, unknown> | undefined) || (d.data as Record<string, unknown> | undefined) || {}
     return {
       success: true,
-      status: (d.status as string) || "QUEUED",
-      reference: (d.reference as string) || (d.merchant_reference as string),
-      checkoutRequestId: (d.CheckoutRequestID as string) || (d.checkout_request_id as string),
+      status: (d.status as string) || (nested.status as string) || "QUEUED",
+      reference:
+        (d.reference as string) ||
+        (d.merchant_reference as string) ||
+        (nested.reference as string) ||
+        (nested.merchant_reference as string),
+      checkoutRequestId:
+        (d.CheckoutRequestID as string) ||
+        (d.checkout_request_id as string) ||
+        (nested.CheckoutRequestID as string) ||
+        (nested.checkout_request_id as string),
       raw: data,
     }
   } catch (err) {
@@ -121,11 +176,11 @@ export async function fetchTransactionStatus(reference: string): Promise<PayHero
   try {
     const res = await fetch(`${PAYHERO_BASE}/transaction-status?reference=${encodeURIComponent(reference)}`, {
       method: "GET",
-      headers: { Authorization: auth },
+      headers: { Authorization: auth, Accept: "application/json" },
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok) {
-      return { success: false, error: `PayHero returned ${res.status}`, raw: data }
+      return { success: false, error: `PayHero returned HTTP ${res.status}`, raw: data }
     }
     const d = data as Record<string, unknown>
     return {
@@ -165,15 +220,59 @@ export function mapCallbackToStatus(resultCode: number | string | undefined, sta
   return { paymentStatus: "failed", orderStatus: "cancelled" }
 }
 
+/**
+ * Produce the absolute callback URL PayHero should POST to after the
+ * customer acts on the STK prompt.
+ *
+ * Resolution order:
+ *   1. PAYHERO_CALLBACK_URL (explicit override, highest trust)
+ *   2. NEXT_PUBLIC_APP_URL  (public site origin)
+ *   3. SITE_URL / URL / DEPLOY_URL / DEPLOY_PRIME_URL (Netlify build-time vars)
+ *   4. Request origin (only works when the request came through the public URL)
+ *
+ * PayHero requires an absolute https URL. Localhost URLs are rejected upstream
+ * and will never receive the callback, so this helper skips any http://localhost
+ * candidate when picking a fallback.
+ */
 export function callbackUrl(request: Request): string {
-  const envUrl = process.env.PAYHERO_CALLBACK_URL
-  if (envUrl) return envUrl
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL
-  if (appUrl) return `${appUrl.replace(/\/$/, "")}/api/payments/callback`
+  const candidates: (string | undefined)[] = [
+    process.env.PAYHERO_CALLBACK_URL,
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.SITE_URL,
+    process.env.URL,
+    process.env.DEPLOY_URL,
+    process.env.DEPLOY_PRIME_URL,
+  ]
+  for (const c of candidates) {
+    const resolved = toCallbackUrl(c)
+    if (resolved) return resolved
+  }
   try {
     const u = new URL(request.url)
-    return `${u.origin}/api/payments/callback`
+    if (u.hostname && u.hostname !== "localhost" && u.hostname !== "127.0.0.1") {
+      return `${u.origin}${CALLBACK_PATH}`
+    }
   } catch {
-    return "/api/payments/callback"
+    // fall through
   }
+  // Last resort: return a relative path. PayHero will reject it, but we
+  // surface a clear error upstream rather than silently sending the wrong URL.
+  return CALLBACK_PATH
+}
+
+function toCallbackUrl(raw: string | undefined): string | null {
+  if (!raw) return null
+  const trimmed = raw.trim()
+  if (!trimmed) return null
+  // If it already looks like a full callback URL, use it as-is.
+  if (/^https?:\/\/.+\/api\/payments\/callback\/?(\?.*)?$/i.test(trimmed)) {
+    return trimmed.replace(/\/$/, "")
+  }
+  // Otherwise treat it as a site origin and append the callback path.
+  if (/^https?:\/\//i.test(trimmed)) {
+    const origin = trimmed.replace(/\/$/, "")
+    if (/localhost|127\.0\.0\.1/i.test(origin)) return null
+    return `${origin}${CALLBACK_PATH}`
+  }
+  return null
 }
