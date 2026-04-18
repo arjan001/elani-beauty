@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { NextRequest, NextResponse } from "next/server"
 import { requireAuth, rateLimit, rateLimitResponse } from "@/lib/security"
 
@@ -142,6 +143,16 @@ export async function DELETE(request: NextRequest) {
   if (!auth.authenticated) return auth.response!
 
   const supabase = await createClient()
+  // Use the service-role client for detaching/removing references so RLS
+  // cannot silently block updates and cause the final product delete to
+  // fail with a foreign key violation.
+  let admin: ReturnType<typeof createAdminClient> | null = null
+  try {
+    admin = createAdminClient()
+  } catch {
+    admin = null
+  }
+  const writer = admin ?? supabase
   const { searchParams } = new URL(request.url)
   const id = searchParams.get("id")
 
@@ -154,16 +165,28 @@ export async function DELETE(request: NextRequest) {
     // always be removed regardless of FK cascade mode (CASCADE / SET NULL /
     // RESTRICT) in the current schema. Errors on these are swallowed —
     // missing tables in some environments are expected.
-    await supabase.from("order_items").update({ product_id: null }).eq("product_id", id)
-    await supabase.from("analytics_events").update({ product_id: null }).eq("product_id", id)
-    await supabase.from("product_images").delete().eq("product_id", id)
-    await supabase.from("product_variations").delete().eq("product_id", id)
-    await supabase.from("product_tags").delete().eq("product_id", id)
-    await supabase.from("cart_items").delete().eq("product_id", id)
-    await supabase.from("wishlists").delete().eq("product_id", id)
-    await supabase.from("wishlist_items").delete().eq("product_id", id)
+    // order_items may still have NOT NULL on product_id in legacy schemas —
+    // in that case, deleting the row is the only safe way to drop the
+    // reference without losing the order itself (order_items metadata like
+    // product_name/product_price is preserved on the orders table level).
+    const { error: nullErr } = await writer
+      .from("order_items")
+      .update({ product_id: null })
+      .eq("product_id", id)
+    if (nullErr) {
+      // Fall back: delete the order_items rows that reference this product
+      // so the FK constraint can no longer block the product delete.
+      await writer.from("order_items").delete().eq("product_id", id)
+    }
+    await writer.from("analytics_events").update({ product_id: null }).eq("product_id", id)
+    await writer.from("product_images").delete().eq("product_id", id)
+    await writer.from("product_variations").delete().eq("product_id", id)
+    await writer.from("product_tags").delete().eq("product_id", id)
+    await writer.from("cart_items").delete().eq("product_id", id)
+    await writer.from("wishlists").delete().eq("product_id", id)
+    await writer.from("wishlist_items").delete().eq("product_id", id)
 
-    const { error } = await supabase.from("products").delete().eq("id", id)
+    const { error } = await writer.from("products").delete().eq("id", id)
     if (error) {
       return NextResponse.json(
         { error: error.message || "Failed to delete product" },

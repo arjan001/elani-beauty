@@ -285,11 +285,7 @@ export function AdminPayments() {
     fetcher,
     { refreshInterval: 15000 }
   )
-  const { data: balances, isLoading: balLoading, error: balError } = useSWR<PayHeroBalances | { error: string }>(
-    "/api/admin/payments?action=balances",
-    fetcher,
-    { refreshInterval: 60000 }
-  )
+  // PayHero balance fetch is disabled while the balance card is hidden.
 
   const notConfigured = Array.isArray(transactions) === false &&
     (transactions as { error?: string })?.error?.toLowerCase().includes("not configured")
@@ -320,7 +316,6 @@ export function AdminPayments() {
             onClick={() => {
               mutate("/api/admin/payments?action=transactions")
               mutate("/api/admin/payments?action=card-payments")
-              mutate("/api/admin/payments?action=balances")
               toast.success("Refreshed")
             }}
             className="flex items-center gap-2 px-4 py-2 border border-border rounded-md text-sm hover:bg-secondary transition-colors self-start"
@@ -330,8 +325,7 @@ export function AdminPayments() {
           </button>
         </div>
 
-        {/* PayHero Balances */}
-        <PayHeroBalanceCards balances={balances} loading={balLoading} error={balError} notConfigured={!!notConfigured} />
+        {/* PayHero Balances (hidden for now) */}
 
         {/* Config Warning */}
         {notConfigured && (
