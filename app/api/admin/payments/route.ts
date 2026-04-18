@@ -81,13 +81,19 @@ export async function POST(request: NextRequest) {
       if (!body.phone || !amount || amount < 1) {
         return NextResponse.json({ error: "Phone and amount are required" }, { status: 400 })
       }
+      const resolvedCallbackUrl = callbackUrl(request)
+      if (!/^https:\/\//i.test(resolvedCallbackUrl)) {
+        return NextResponse.json({
+          error: "Payment callback URL is not configured. Set PAYHERO_CALLBACK_URL (or NEXT_PUBLIC_APP_URL) to your public https URL.",
+        }, { status: 500 })
+      }
       const reference = `ADMIN-${Date.now().toString(36).toUpperCase()}`
       const result = await initiateStkPush({
         amount,
         phone: normalizePhone(String(body.phone)),
         externalReference: reference,
         customerName: body.customerName || "Admin Request",
-        callbackUrl: callbackUrl(request),
+        callbackUrl: resolvedCallbackUrl,
       })
       if (!result.success) {
         return NextResponse.json({ error: result.error || "Failed to initiate STK push" }, { status: 502 })

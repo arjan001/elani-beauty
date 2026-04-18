@@ -31,13 +31,25 @@ SMTP_USER=your_email
 SMTP_PASSWORD=your_email_password
 ```
 
-### Payment Integration (Optional - for M-PESA)
+### Payment Integration - PayHero (M-PESA STK Push)
+
+M-Pesa payments are handled exclusively through PayHero. The app does not
+talk to Safaricom Daraja directly — credentials below come from the PayHero
+dashboard at https://app.payhero.co.ke (docs at https://docs.payhero.co.ke).
+
 ```
-MPESA_CONSUMER_KEY=your_key
-MPESA_CONSUMER_SECRET=your_secret
-MPESA_SHORTCODE=your_shortcode
-MPESA_PASSKEY=your_passkey
+PAYHERO_API_USERNAME=your_payhero_api_username
+PAYHERO_API_PASSWORD=your_payhero_api_password
+# Or, instead of username/password, a pre-built Basic token:
+# PAYHERO_AUTH_TOKEN=Basic XXXXXXXXXXXXXXXXXX
+PAYHERO_CHANNEL_ID=your_numeric_channel_id
+# Absolute https URL PayHero will POST the payment status callback to.
+# Defaults to `${NEXT_PUBLIC_APP_URL || Netlify URL}/api/payments/callback` if unset.
+PAYHERO_CALLBACK_URL=https://your-domain.com/api/payments/callback
 ```
+
+The callback endpoint lives at `/api/payments/callback` and is what keeps
+order payment status in sync after the customer enters their M-Pesa PIN.
 
 ### Analytics (Optional)
 ```

@@ -18,6 +18,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "M-Pesa payments are not configured yet. Please try another payment method." }, { status: 503 })
   }
 
+  // Resolve the callback URL up front so we can fail fast with a clear error
+  // if the environment is misconfigured, rather than creating a pending order
+  // and then having PayHero reject the push.
+  const resolvedCallbackUrl = callbackUrl(request)
+  if (!/^https:\/\//i.test(resolvedCallbackUrl)) {
+    console.error("[stk-push] Missing/invalid callback URL", { resolvedCallbackUrl })
+    return NextResponse.json({
+      error: "Payment callback URL is not configured. Set PAYHERO_CALLBACK_URL (or NEXT_PUBLIC_APP_URL) to your public https URL.",
+    }, { status: 500 })
+  }
+
   let body: Record<string, unknown>
   try {
     body = await request.json()
@@ -93,7 +104,7 @@ export async function POST(request: NextRequest) {
     phone: normalizePhone(mpesaPhone),
     externalReference: created.orderNumber,
     customerName,
-    callbackUrl: callbackUrl(request),
+    callbackUrl: resolvedCallbackUrl,
   })
 
   // Persist the PayHero reference & checkout id back to the order regardless of outcome.
